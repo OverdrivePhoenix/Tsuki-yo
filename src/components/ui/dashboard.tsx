@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { serializeGift } from '../../App';
 import { StitchEngine } from './stitch-engine';
 import { MatrixRain } from './matrix-rain';
 import { WaveformTimeline } from './waveform-timeline';
@@ -185,6 +186,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string>('');
   const [outroFont, setOutroFont] = useState<string>('modern');
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
 
   // STEP 2 States & Online Search
   const [audioUrl, setAudioUrl] = useState(DEFAULT_AUDIO_OPTIONS[0].url);
@@ -1826,6 +1829,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       <span className="text-[9px] text-[#cdc6b9]">Warm white serif stitches</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Share Gift Link Section */}
+                <div className="border-t border-[#4b463c]/15 pt-4 flex flex-col gap-3">
+                  <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">Share Gift Experience</span>
+                  <button
+                    onClick={() => {
+                      const b64 = serializeGift({
+                        recipientName,
+                        outroMessage,
+                        outroFont,
+                        images,
+                        lyrics: sections,
+                        audioUrl,
+                        masterCropStart,
+                        masterCropEnd,
+                        stylePreset
+                      });
+                      const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
+                      setShareUrl(url);
+                      navigator.clipboard.writeText(url)
+                        .then(() => {
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 3000);
+                        })
+                        .catch(() => {
+                          alert("Could not copy link automatically. Please copy the URL from the text box below.");
+                        });
+                    }}
+                    className="w-full bg-[#1c1b1b]/50 border border-[#4b463c]/40 hover:bg-[#ff007f]/10 text-white font-mono text-xs uppercase py-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    style={{ borderColor: copied ? theme.accent : undefined }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: theme.accent }} />
+                    <span>{copied ? 'Link Copied!' : 'Copy Share Link'}</span>
+                  </button>
+
+                  {shareUrl && (
+                    <div className="flex flex-col gap-1.5 animate-fade-in mt-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase">Direct URL Link</span>
+                      <input
+                        type="text"
+                        readOnly
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                        value={shareUrl}
+                        className="w-full bg-black/60 border border-[#4b463c]/30 rounded px-2.5 py-1.5 text-[9px] text-gray-400 font-mono focus:outline-none"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

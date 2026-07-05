@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dashboard } from './components/ui/dashboard';
 import type { UploadedImage, LyricSection } from './components/ui/dashboard';
 import { Performance } from './components/ui/performance';
 
-interface GiftData {
+export interface GiftData {
   recipientName: string;
   outroMessage: string;
   outroFont: string;
@@ -15,9 +15,111 @@ interface GiftData {
   stylePreset: 'matrix_rain' | 'anime_vignette';
 }
 
+export const serializeGift = (data: GiftData): string => {
+  const cleanImages = data.images.map(img => {
+    const isBase64 = img.src.startsWith('data:');
+    return {
+      id: img.id,
+      name: img.name,
+      src: isBase64 ? '' : img.src,
+      contrast: img.contrast,
+      brightness: img.brightness,
+      cropZoom: img.cropZoom,
+      cropOffsetX: img.cropOffsetX,
+      cropOffsetY: img.cropOffsetY
+    };
+  });
+
+  const compactData = {
+    r: data.recipientName,
+    m: data.outroMessage,
+    f: data.outroFont,
+    i: cleanImages,
+    l: data.lyrics.map(sec => ({
+      s: sec.start,
+      e: sec.end,
+      t: sec.text,
+      i: sec.imageId,
+      p: sec.style,
+      v: sec.scrollSpeed
+    })),
+    a: data.audioUrl,
+    cs: data.masterCropStart,
+    ce: data.masterCropEnd,
+    sp: data.stylePreset
+  };
+
+  const json = JSON.stringify(compactData);
+  const utf8Bytes = new TextEncoder().encode(json);
+  const binString = Array.from(utf8Bytes, (byte) => String.fromCharCode(byte)).join("");
+  return btoa(binString)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
+export const deserializeGift = (b64: string): GiftData | null => {
+  try {
+    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    const binString = atob(base64);
+    const utf8Bytes = Uint8Array.from(binString, (char) => char.charCodeAt(0));
+    const json = new TextDecoder().decode(utf8Bytes);
+    const compact = JSON.parse(json);
+
+    return {
+      recipientName: compact.r,
+      outroMessage: compact.m,
+      outroFont: compact.f || 'modern',
+      images: compact.i.map((img: any) => ({
+        id: img.id,
+        name: img.name,
+        src: img.src || '',
+        contrast: img.contrast,
+        brightness: img.brightness,
+        cropZoom: img.cropZoom,
+        cropOffsetX: img.cropOffsetX,
+        cropOffsetY: img.cropOffsetY
+      })),
+      lyrics: compact.l.map((sec: any, idx: number) => ({
+        id: `sec-${idx}`,
+        start: sec.s,
+        end: sec.e,
+        text: sec.t,
+        imageId: sec.i,
+        style: sec.p,
+        scrollSpeed: sec.v || 1.0
+      })),
+      audioUrl: compact.a,
+      masterCropStart: compact.cs,
+      masterCropEnd: compact.ce,
+      stylePreset: compact.sp
+    };
+  } catch (e) {
+    console.error("Failed to deserialize gift link:", e);
+    return null;
+  }
+};
+
 function App() {
   const [viewState, setViewState] = useState<'editor' | 'performance'>('editor');
   const [giftData, setGiftData] = useState<GiftData | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const giftParam = urlParams.get('gift');
+      if (giftParam) {
+        const data = deserializeGift(giftParam);
+        if (data) {
+          setGiftData(data);
+          setViewState('performance');
+        }
+      }
+    }
+  }, []);
 
   const handleLaunchPerformance = (data: GiftData) => {
     setGiftData(data);
