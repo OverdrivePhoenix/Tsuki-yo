@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { serializeGift } from '../../App';
 import { StitchEngine } from './stitch-engine';
 import { MatrixRain } from './matrix-rain';
 import { RotateCcw, VolumeX, Volume2, Sparkles } from 'lucide-react';
@@ -29,12 +30,26 @@ export const Performance: React.FC<PerformanceProps> = ({ data, onBackToDashboar
   const [isDissolved, setIsDissolved] = useState(false);
   const [rainOpacity, setRainOpacity] = useState(0.25);
   const [isFadedToBlack, setIsFadedToBlack] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   // Playback sync states for StitchEngine scrolling lyrics
   const [playbackTime, setPlaybackTime] = useState<number>(data.masterCropStart);
   const [activeSecStart, setActiveSecStart] = useState<number>(data.masterCropStart);
   const [activeSecEnd, setActiveSecEnd] = useState<number>(data.masterCropEnd);
   const [isPlayingState, setIsPlayingState] = useState<boolean>(false);
+
+  const handleCopyLink = () => {
+    const b64 = serializeGift(data as any);
+    const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 3000);
+      })
+      .catch(() => {
+        alert("Failed to copy link automatically. Here is the URL: " + url);
+      });
+  };
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationRef = useRef<number>(0);
@@ -419,6 +434,14 @@ export const Performance: React.FC<PerformanceProps> = ({ data, onBackToDashboar
             >
               Open Gift
             </button>
+
+            <button
+              onClick={handleCopyLink}
+              className="w-full mt-2.5 bg-white/5 hover:bg-white/10 text-gray-300 font-mono text-xs uppercase py-2.5 rounded-lg border border-gray-800 transition-all cursor-pointer flex items-center justify-center gap-1"
+            >
+              <Sparkles className="w-3.5 h-3.5" style={{ color: activeStyle === 'matrix_rain' ? '#ff007f' : '#d4c5a1' }} />
+              <span>{copiedShare ? 'Link Copied!' : 'Copy Share Link'}</span>
+            </button>
           </div>
         </div>
       )}
@@ -472,15 +495,27 @@ export const Performance: React.FC<PerformanceProps> = ({ data, onBackToDashboar
               {data.outroMessage}
             </div>
             
-            {/* Replay Button (placed on top of the black overlay in low contrast) */}
-            <button
-              onClick={handleRestart}
-              className={`pointer-events-auto mt-4 bg-black/80 hover:bg-[#ff007f]/10 border border-[#ff007f]/45 text-white font-mono text-[10px] uppercase px-5 py-2.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg shadow-black/50 ${
-                isFadedToBlack ? 'opacity-30 hover:opacity-100 border-[#ff007f]/20' : 'opacity-100'
-              }`}
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-[#ff007f]" /> Replay Experience
-            </button>
+            {/* Action Buttons (placed on top of the black overlay in low contrast) */}
+            <div className="flex gap-3 mt-4 pointer-events-auto">
+              <button
+                onClick={handleRestart}
+                className={`bg-black/80 hover:bg-[#ff007f]/10 border border-[#ff007f]/45 text-white font-mono text-[10px] uppercase px-5 py-2.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg shadow-black/50 ${
+                  isFadedToBlack ? 'opacity-30 hover:opacity-100 border-[#ff007f]/20' : 'opacity-100'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-[#ff007f]" /> Replay Experience
+              </button>
+              
+              <button
+                onClick={handleCopyLink}
+                className={`bg-black/80 hover:bg-[#ff007f]/10 border border-[#ff007f]/45 text-white font-mono text-[10px] uppercase px-5 py-2.5 rounded-lg flex items-center gap-1.5 transition-all shadow-lg shadow-black/50 ${
+                  isFadedToBlack ? 'opacity-30 hover:opacity-100 border-[#ff007f]/20' : 'opacity-100'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" style={{ color: activeStyle === 'matrix_rain' ? '#ff007f' : '#d4c5a1' }} />
+                <span>{copiedShare ? 'Link Copied!' : 'Copy Share Link'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
