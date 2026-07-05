@@ -591,6 +591,16 @@ export const StitchEngine: React.FC<StitchEngineProps> = ({
         const SPRING = 0.08;
         const FRICTION = 0.75;
 
+        // Context state cache registry
+        let lastAlpha = -1.0;
+        let lastFill = '';
+        let lastFont = '';
+        let lastShadowBlur = -1;
+        let lastShadowColor = '';
+
+        // Reset default shadow properties initially to prevent leaks
+        trailCtx.shadowBlur = 0;
+
         // Draw and update particles to trailCtx
         for (let i = 0; i < pool.length; i++) {
           const p = pool[i];
@@ -715,19 +725,44 @@ export const StitchEngine: React.FC<StitchEngineProps> = ({
             }
           }
 
-          trailCtx.save();
-          trailCtx.globalAlpha = opacity;
-          if (shadowBlurVal > 0) {
-            trailCtx.shadowBlur = shadowBlurVal;
-            trailCtx.shadowColor = shadowColor;
+          // Apply globalAlpha if changed
+          if (opacity !== lastAlpha) {
+            trailCtx.globalAlpha = opacity;
+            lastAlpha = opacity;
           }
-          trailCtx.fillStyle = drawColor;
-          
-          const drawSize = Math.max(2, (p.targetX !== null ? 8 : p.size) * scale);
-          trailCtx.font = `bold ${drawSize}px monospace`;
+
+          // Apply shadow properties if changed
+          if (shadowBlurVal !== lastShadowBlur) {
+            trailCtx.shadowBlur = shadowBlurVal;
+            lastShadowBlur = shadowBlurVal;
+          }
+          if (shadowBlurVal > 0 && shadowColor !== lastShadowColor) {
+            trailCtx.shadowColor = shadowColor;
+            lastShadowColor = shadowColor;
+          }
+
+          // Apply fillStyle if changed
+          if (drawColor !== lastFill) {
+            trailCtx.fillStyle = drawColor;
+            lastFill = drawColor;
+          }
+
+          // Calculate size, round to integer to hit browser font glyph cache!
+          const drawSize = Math.round(Math.max(2, (p.targetX !== null ? 8 : p.size) * scale));
+          const fontStr = `bold ${drawSize}px monospace`;
+          if (fontStr !== lastFont) {
+            trailCtx.font = fontStr;
+            lastFont = fontStr;
+          }
+
           trailCtx.fillText(p.char, projX, projY);
-          trailCtx.restore();
         }
+
+        // Reset context shadow properties after the loop to prevent pollution
+        if (lastShadowBlur > 0) {
+          trailCtx.shadowBlur = 0;
+        }
+        trailCtx.globalAlpha = 1.0;
 
         // Draw offscreen trails canvas onto main canvas at 1:1 physical pixels
         ctx.save();
