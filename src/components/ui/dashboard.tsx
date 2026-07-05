@@ -1492,6 +1492,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                 masterCropEnd={masterCropEnd}
                 duration={duration || (masterCropEnd - masterCropStart) || 30}
                 currentTime={currentTime}
+                sections={sections}
+                images={images}
+                activeSectionId={activeSectionId}
+                onSelectSection={setActiveSectionId}
+                onUpdateSections={setSections}
                 onChangeCropStart={updateCropStart}
                 onChangeCropEnd={updateCropEnd}
                 onDragEnd={() => {
