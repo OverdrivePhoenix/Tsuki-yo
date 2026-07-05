@@ -469,13 +469,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
       setDuration(audio.duration);
       setValidationError(null);
       
-      if (audio.duration <= 35) {
-        updateCropStart(0);
-        updateCropEnd(audio.duration);
-      } else {
-        updateCropStart(0);
-        updateCropEnd(180);
-      }
+      const maxCrop = Math.min(60.0, audio.duration);
+      updateCropStart(0);
+      updateCropEnd(maxCrop);
     };
 
     const handleTimeUpdate = () => {
@@ -1296,11 +1292,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                               const autoOffset = findBestAutoAlignmentOffset(cachedLyrics.lyrics, track.trackName, 180);
                               setLyricOffset(autoOffset);
                               const firstLyricTime = Math.max(0, cachedLyrics.lyrics[0].absoluteStart + autoOffset);
-                              const lastLyricTime = cachedLyrics.lyrics[cachedLyrics.lyrics.length - 1].absoluteStart + autoOffset;
                               const cropStart = Math.max(0, firstLyricTime - 2);
-                              const cropEnd = Math.min(180, lastLyricTime + 3);
                               updateCropStart(cropStart);
-                              updateCropEnd(Math.max(cropStart + 5, cropEnd));
+                              updateCropEnd(cropStart + Math.min(60.0, duration || 60.0));
                             } else {
                               setLyricOffset(0);
                             }
@@ -1313,11 +1307,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                             const autoOffset = findBestAutoAlignmentOffset(generated, track.trackName, 180);
                             setLyricOffset(autoOffset);
                             const firstLyricTime = Math.max(0, generated[0].absoluteStart + autoOffset);
-                            const lastLyricTime = generated[generated.length - 1].absoluteStart + autoOffset;
                             const cropStart = Math.max(0, firstLyricTime - 2);
-                            const cropEnd = Math.min(180, lastLyricTime + 3);
                             updateCropStart(cropStart);
-                            updateCropEnd(Math.max(cropStart + 5, cropEnd));
+                            updateCropEnd(cropStart + Math.min(60.0, duration || 60.0));
                           } else {
                             setLyricOffset(0);
                           }
@@ -1397,11 +1389,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                             setLyricsSearchQuery('');
                             
                             const firstLyricTime = Math.max(0, lyrics[0].absoluteStart + autoOffset);
-                            const lastLyricTime = lyrics[lyrics.length - 1].absoluteStart + autoOffset;
                             const cropStart = Math.max(0, firstLyricTime - 2);
-                            const cropEnd = Math.min(180, lastLyricTime + 3);
                             updateCropStart(cropStart);
-                            updateCropEnd(Math.max(cropStart + 5, cropEnd));
+                            updateCropEnd(cropStart + Math.min(60.0, duration || 60.0));
                           }
                         }}
                         className="flex items-center justify-between p-2 rounded cursor-pointer border border-[#4b463c]/15 bg-black/20 hover:bg-[#d4c5a1]/5 hover:border-[var(--accent-color)] transition-all text-xs font-mono"
@@ -1499,15 +1489,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                 masterCropEnd={masterCropEnd}
                 duration={duration || (masterCropEnd - masterCropStart) || 30}
                 currentTime={currentTime}
-                sections={sections}
-                images={images}
-                activeSectionId={activeSectionId}
-                onSelectSection={setActiveSectionId}
-                onUpdateSections={setSections}
                 onChangeCropStart={updateCropStart}
                 onChangeCropEnd={updateCropEnd}
-                onDragEnd={() => pushHistory(sections)}
+                onDragEnd={() => {
+                  if (audioRef.current) {
+                    const isSnippet = audioRef.current.duration <= 35;
+                    audioRef.current.currentTime = isSnippet ? 0 : masterCropStart;
+                    setCurrentTime(masterCropStart);
+                  }
+                  pushHistory(sections);
+                }}
                 analyser={audioRef.current ? (audioRef.current as any).__dashboardAnalyser : null}
+                stylePreset={stylePreset}
+                audioElement={audioRef.current}
+                masterLyrics={masterLyrics}
               />
 
               {/* Play head control line with Undo/Redo & Playback Speed Controls */}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { UploadedImage, LyricSection, StitchStyle } from './dashboard';
+import type { StitchStyle } from './dashboard';
 
 interface WaveformTimelineProps {
   audioUrl: string;
@@ -7,17 +7,13 @@ interface WaveformTimelineProps {
   masterCropEnd: number;
   duration: number;
   currentTime: number;
-  sections: LyricSection[];
-  images: UploadedImage[];
-  activeSectionId: string | null;
-  onSelectSection: (id: string | null) => void;
-  onUpdateSections: (sections: LyricSection[]) => void;
   onChangeCropStart?: (val: number) => void;
   onChangeCropEnd?: (val: number) => void;
   onDragEnd?: () => void;
   analyser?: AnalyserNode | null;
   stylePreset?: StitchStyle;
   audioElement?: HTMLAudioElement | null;
+  masterLyrics?: { absoluteStart: number; text: string }[];
 }
 
 export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
@@ -26,36 +22,29 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
   masterCropEnd,
   duration,
   currentTime,
-  sections,
-  images,
-  activeSectionId,
-  onSelectSection,
-  onUpdateSections,
   onChangeCropStart,
   onChangeCropEnd,
   onDragEnd,
   analyser,
   stylePreset = 'matrix_rain',
   audioElement,
+  masterLyrics = [],
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [peaks, setPeaks] = useState<number[]>([]);
-  const transientPeaksRef = useRef<number[]>([]);
   const animationFrameRef = useRef<number>(0);
 
   // Dragging state
   const [dragInfo, setDragInfo] = useState<{
-    type: 'left' | 'right' | 'move' | 'crop_start' | 'crop_end';
-    sectionId?: string;
+    type: 'move';
     startX: number;
     startVal: number;
-    endVal?: number;
   } | null>(null);
 
   const themeAccent = stylePreset === 'matrix_rain' ? '#ff007f' : '#d4c5a1';
 
-  // Parse audio file into peaks and detect transient peaks
+  // Parse audio file into peaks
   useEffect(() => {
     const parseAudio = async () => {
       try {
@@ -78,18 +67,6 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
           extracted.push(sum / blockSize);
         }
         setPeaks(extracted);
-
-        // Detect transient drum hits/peaks in the track
-        const transients: number[] = [];
-        const average = extracted.reduce((a, b) => a + b, 0) / extracted.length;
-        const threshold = average * 1.35;
-        for (let i = 1; i < extracted.length - 1; i++) {
-          if (extracted[i] > extracted[i - 1] && extracted[i] > extracted[i + 1] && extracted[i] > threshold) {
-            const t = (i / extracted.length) * audioBuffer.duration;
-            transients.push(parseFloat(t.toFixed(2)));
-          }
-        }
-        transientPeaksRef.current = transients;
       } catch (err) {
         // Fallback synthetic wave generator
         const synth = [];
@@ -97,57 +74,11 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
           synth.push(0.12 + 0.38 * Math.sin(i * 0.08) * Math.cos(i * 0.035) + 0.08 * Math.random());
         }
         setPeaks(synth);
-        
-        // Synthetic transients
-        const transients: number[] = [];
-        for (let i = 5; i < 180; i += 15) {
-          transients.push((i / 180) * (duration || 60));
-        }
-        transientPeaksRef.current = transients;
       }
     };
 
     parseAudio();
   }, [audioUrl]);
-
-  // Snapping function
-  const SNAP_THRESHOLD = 0.25; // 250ms snap window
-  const getSnappedValue = (val: number, excludeId?: string): number => {
-    const targets: number[] = [];
-    
-    // Add other block boundaries (starts and ends)
-    sections.forEach(s => {
-      if (s.id !== excludeId) {
-        targets.push(s.start);
-        targets.push(s.end);
-      }
-    });
-
-    // Add transient peaks in relative time
-    transientPeaksRef.current.forEach(pt => {
-      const relPt = pt - masterCropStart;
-      if (relPt >= 0 && relPt <= (masterCropEnd - masterCropStart)) {
-        targets.push(relPt);
-      }
-    });
-
-    let closest = val;
-    let minDiff = SNAP_THRESHOLD;
-    for (const t of targets) {
-      const diff = Math.abs(val - t);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = t;
-      }
-    }
-
-    if (closest !== val) {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(10); // subtle snap haptic feedback tick
-      }
-    }
-    return closest;
-  };
 
   // Continuous 60fps canvas render loop for smooth playhead & reactive glow
   useEffect(() => {
@@ -164,7 +95,7 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
       ctx.clearRect(0, 0, w, h);
 
       // Draw background grid lines
-      ctx.strokeStyle = 'rgba(75, 70, 60, 0.15)';
+      ctx.strokeStyle = 'rgba(75, 70, 60, 0.1)';
       ctx.lineWidth = 1;
       for (let x = 0; x < w; x += w / 10) {
         ctx.beginPath();
@@ -198,29 +129,48 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
       const maxVal = Math.max(...peaks) || 1.0;
 
       for (let i = 0; i < peaks.length; i++) {
-        const barH = (peaks[i] / maxVal) * (h * 0.75);
+        const barH = (peaks[i] / maxVal) * (h * 0.6);
         const x = i * barWidth;
         const y = (h - barH) / 2;
 
         const barTime = (i / peaks.length) * (duration || 60);
+        const isInsideCrop = barTime >= masterCropStart && barTime <= masterCropEnd;
         const isPastPlayhead = barTime < smoothTime;
 
-        if (barTime >= masterCropStart && barTime <= masterCropEnd) {
-          const isSelectedTheme = stylePreset === 'matrix_rain';
-          ctx.save();
+        ctx.save();
+        if (isInsideCrop) {
           if (isPastPlayhead) {
             ctx.shadowBlur = (bassGlow / 255) * 12;
             ctx.shadowColor = themeAccent;
-            ctx.fillStyle = isSelectedTheme ? 'rgba(255, 0, 127, 0.85)' : 'rgba(212, 197, 161, 0.85)';
+            ctx.fillStyle = stylePreset === 'matrix_rain' ? 'rgba(255, 0, 127, 0.85)' : 'rgba(212, 197, 161, 0.85)';
           } else {
-            ctx.fillStyle = isSelectedTheme ? 'rgba(255, 0, 127, 0.25)' : 'rgba(212, 197, 161, 0.25)';
+            ctx.fillStyle = stylePreset === 'matrix_rain' ? 'rgba(255, 0, 127, 0.4)' : 'rgba(212, 197, 161, 0.4)';
           }
-          ctx.fillRect(x + 1, y, barWidth - 1, barH);
-          ctx.restore();
         } else {
-          ctx.fillStyle = 'rgba(75, 70, 60, 0.1)';
-          ctx.fillRect(x + 1, y, barWidth - 1, barH);
+          ctx.fillStyle = 'rgba(75, 70, 60, 0.2)'; // low-opacity base waveform
         }
+        ctx.fillRect(x + 1, y, barWidth - 1, barH);
+        ctx.restore();
+      }
+
+      // Draw lyric cluster tick marks (pink/gold dots)
+      if (masterLyrics && masterLyrics.length > 0) {
+        masterLyrics.forEach((lyric) => {
+          const x = (lyric.absoluteStart / duration) * w;
+          const isInsideCrop = lyric.absoluteStart >= masterCropStart && lyric.absoluteStart <= masterCropEnd;
+
+          ctx.save();
+          ctx.shadowBlur = isInsideCrop ? 6 : 0;
+          ctx.shadowColor = themeAccent;
+          ctx.fillStyle = isInsideCrop 
+            ? themeAccent 
+            : 'rgba(255, 255, 255, 0.2)';
+          
+          ctx.beginPath();
+          ctx.arc(x, h - 8, isInsideCrop ? 3.5 : 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
       }
 
       // Draw Current Audio Playhead Line (smooth & pulsing to bass)
@@ -246,9 +196,9 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [peaks, currentTime, duration, masterCropStart, masterCropEnd, analyser, stylePreset, themeAccent, audioElement]);
+  }, [peaks, currentTime, duration, masterCropStart, masterCropEnd, analyser, stylePreset, themeAccent, audioElement, masterLyrics]);
 
-  // Handle Dragging Events
+  // Handle Dragging Events (Instagram-style sliding frame)
   useEffect(() => {
     if (!dragInfo || !containerRef.current) return;
 
@@ -260,63 +210,13 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
       const dx = e.clientX - dragInfo.startX;
       const dSecs = (dx / rect.width) * (duration || 60);
 
-      if (dragInfo.type === 'crop_start') {
-        let newStart = dragInfo.startVal + dSecs;
-        newStart = Math.max(0, Math.min(newStart, masterCropEnd - 1.0));
-        onChangeCropStart?.(parseFloat(newStart.toFixed(1)));
-        return;
-      }
+      const cropWidth = masterCropEnd - masterCropStart;
+      let newStart = dragInfo.startVal + dSecs;
+      newStart = Math.max(0, Math.min(newStart, duration - cropWidth));
+      const newEnd = newStart + cropWidth;
 
-      if (dragInfo.type === 'crop_end') {
-        let newEnd = dragInfo.startVal + dSecs;
-        newEnd = Math.max(masterCropStart + 1.0, Math.min(newEnd, duration));
-        onChangeCropEnd?.(parseFloat(newEnd.toFixed(1)));
-        return;
-      }
-
-      const targetSec = sections.find(s => s.id === dragInfo.sectionId);
-      if (!targetSec) return;
-
-      const sorted = [...sections].sort((a, b) => a.start - b.start);
-      const idx = sorted.findIndex(s => s.id === dragInfo.sectionId);
-      
-      const prevSec = idx > 0 ? sorted[idx - 1] : null;
-      const nextSec = idx < sorted.length - 1 ? sorted[idx + 1] : null;
-
-      const minBound = prevSec ? prevSec.end : 0;
-      const maxBound = nextSec ? nextSec.start : (masterCropEnd - masterCropStart);
-
-      if (dragInfo.type === 'left') {
-        let newStart = dragInfo.startVal + dSecs;
-        newStart = getSnappedValue(newStart, dragInfo.sectionId);
-        newStart = Math.max(minBound, Math.min(newStart, (dragInfo.endVal as number) - 0.5));
-        onUpdateSections(sections.map(s => s.id === dragInfo.sectionId ? { ...s, start: parseFloat(newStart.toFixed(1)) } : s));
-      } else if (dragInfo.type === 'right') {
-        let newEnd = (dragInfo.endVal as number) + dSecs;
-        newEnd = getSnappedValue(newEnd, dragInfo.sectionId);
-        newEnd = Math.max(dragInfo.startVal + 0.5, Math.min(newEnd, maxBound));
-        onUpdateSections(sections.map(s => s.id === dragInfo.sectionId ? { ...s, end: parseFloat(newEnd.toFixed(1)) } : s));
-      } else if (dragInfo.type === 'move') {
-        const length = (dragInfo.endVal as number) - dragInfo.startVal;
-        let newStart = dragInfo.startVal + dSecs;
-        newStart = getSnappedValue(newStart, dragInfo.sectionId);
-        let newEnd = newStart + length;
-
-        if (newStart < minBound) {
-          newStart = minBound;
-          newEnd = newStart + length;
-        }
-        if (newEnd > maxBound) {
-          newEnd = maxBound;
-          newStart = newEnd - length;
-        }
-
-        onUpdateSections(sections.map(s => s.id === dragInfo.sectionId ? { 
-          ...s, 
-          start: parseFloat(newStart.toFixed(1)), 
-          end: parseFloat(newEnd.toFixed(1)) 
-        } : s));
-      }
+      onChangeCropStart?.(parseFloat(newStart.toFixed(1)));
+      onChangeCropEnd?.(parseFloat(newEnd.toFixed(1)));
     };
 
     const handleMouseUp = () => {
@@ -331,240 +231,48 @@ export const WaveformTimeline: React.FC<WaveformTimelineProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragInfo, duration, sections, masterCropStart, masterCropEnd]);
-
-  // Click on empty space to add new segment
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container || dragInfo) return;
-
-    const target = e.target as HTMLElement;
-    if (target.closest('.lyric-block-overlay') || target.closest('.drag-handle')) {
-      return;
-    }
-
-    const rect = container.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickTime = (clickX / rect.width) * (duration || 60);
-
-    if (clickTime < masterCropStart || clickTime > masterCropEnd) return;
-
-    let isColliding = false;
-    sections.forEach(s => {
-      const absStart = s.start + masterCropStart;
-      const absEnd = s.end + masterCropStart;
-      if (clickTime >= absStart && clickTime <= absEnd) {
-        isColliding = true;
-      }
-    });
-
-    if (isColliding) return;
-
-    const sorted = [...sections].sort((a, b) => a.start - b.start);
-    let minBound = masterCropStart;
-    let maxBound = masterCropEnd;
-
-    for (let i = 0; i < sorted.length; i++) {
-      const absEnd = sorted[i].end + masterCropStart;
-      const absStart = sorted[i].start + masterCropStart;
-      if (absEnd <= clickTime) {
-        minBound = absEnd;
-      }
-      if (absStart >= clickTime) {
-        maxBound = absStart;
-        break;
-      }
-    }
-
-    let newStart = clickTime - 1.5;
-    let newEnd = clickTime + 1.5;
-
-    if (newEnd - newStart > (maxBound - minBound)) {
-      newStart = minBound;
-      newEnd = maxBound;
-    } else {
-      if (newStart < minBound) {
-        newStart = minBound;
-        newEnd = newStart + 3.0;
-      }
-      if (newEnd > maxBound) {
-        newEnd = maxBound;
-        newStart = newEnd - 3.0;
-      }
-    }
-
-    if (newEnd - newStart >= 0.5) {
-      const defaultImageId = images.length > 0 ? images[0].id : '';
-      const relativeStart = newStart - masterCropStart;
-      const relativeEnd = newEnd - masterCropStart;
-
-      const newSec: LyricSection = {
-        id: `sec-${Date.now()}`,
-        start: parseFloat(relativeStart.toFixed(1)),
-        end: parseFloat(relativeEnd.toFixed(1)),
-        text: 'NEW SEGMENT',
-        imageId: defaultImageId,
-        style: 'matrix_rain',
-        scrollSpeed: 1.0
-      };
-
-      const updated = [...sections, newSec].sort((a, b) => a.start - b.start);
-      onUpdateSections(updated);
-      onSelectSection(newSec.id);
-      onDragEnd?.(); // commit to history
-    }
-  };
+  }, [dragInfo, duration, masterCropStart, masterCropEnd]);
 
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center text-[10px] font-mono text-gray-500 uppercase">
-        <span>Timeline visual cropper</span>
-        <span>Click empty space to add segment</span>
+        <span>Timeline Audio Cropper</span>
+        <span>Drag the bounding box left or right to select a segment</span>
       </div>
 
       <div
         ref={containerRef}
-        onClick={handleTimelineClick}
-        className="w-full h-[120px] bg-black/40 border border-[#4b463c]/30 rounded-lg overflow-hidden relative cursor-crosshair select-none"
+        className="w-full h-[120px] bg-black/40 border border-[#4b463c]/30 rounded-lg overflow-hidden relative select-none"
       >
         {/* Waveform Canvas */}
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
 
-        {/* Gray Out-Of-Bounds Crop Overlay */}
+        {/* Highlighted Draggable Bounding Box Slider */}
         {duration > 0 && (
-          <>
-            <div
-              className="absolute top-0 bottom-0 left-0 bg-black/75 z-10 pointer-events-none border-r border-red-900/40"
-              style={{ width: `${(masterCropStart / duration) * 100}%` }}
-            />
-            <div
-              className="absolute top-0 bottom-0 right-0 bg-black/75 z-10 pointer-events-none border-l border-red-900/40"
-              style={{ left: `${(masterCropEnd / duration) * 100}%`, right: 0 }}
-            />
-
-            {/* Draggable Crop Window Handles */}
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                setDragInfo({
-                  type: 'crop_start',
-                  startX: e.clientX,
-                  startVal: masterCropStart,
-                });
-              }}
-              className="absolute top-0 bottom-0 z-35 w-4 cursor-col-resize flex items-center justify-start group"
-              style={{ left: `${(masterCropStart / duration) * 100}%`, transform: 'translateX(-50%)' }}
-            >
-              <div className="w-[5px] h-full bg-[#d4c5a1] group-hover:bg-white transition-all shadow-[0_0_10px_rgba(212,197,161,0.6)] rounded-l-md" style={{ backgroundColor: themeAccent }} />
+          <div
+            onMouseDown={(e) => {
+              setDragInfo({
+                type: 'move',
+                startX: e.clientX,
+                startVal: masterCropStart,
+              });
+            }}
+            className="absolute top-0 bottom-0 z-30 cursor-grab active:cursor-grabbing hover:bg-white/[0.02] transition-colors border-2 group rounded"
+            style={{
+              left: `${(masterCropStart / duration) * 100}%`,
+              width: `${((masterCropEnd - masterCropStart) / duration) * 100}%`,
+              borderColor: themeAccent,
+              boxShadow: `0 0 20px ${themeAccent}30, inset 0 0 15px ${themeAccent}10`,
+            }}
+          >
+            {/* Center handle indicator */}
+            <div className="absolute inset-y-0 left-1/2 w-3 flex items-center justify-center -translate-x-1/2 pointer-events-none opacity-40 group-hover:opacity-85 transition-opacity gap-[2px]">
+              <div className="w-[1.5px] h-7 bg-white rounded-full" />
+              <div className="w-[1.5px] h-7 bg-white rounded-full" />
+              <div className="w-[1.5px] h-7 bg-white rounded-full" />
             </div>
-
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                setDragInfo({
-                  type: 'crop_end',
-                  startX: e.clientX,
-                  startVal: masterCropEnd,
-                });
-              }}
-              className="absolute top-0 bottom-0 z-35 w-4 cursor-col-resize flex items-center justify-end group"
-              style={{ left: `${(masterCropEnd / duration) * 100}%`, transform: 'translateX(-50%)' }}
-            >
-              <div className="w-[5px] h-full bg-[#d4c5a1] group-hover:bg-white transition-all shadow-[0_0_10px_rgba(212,197,161,0.6)] rounded-r-md" style={{ backgroundColor: themeAccent }} />
-            </div>
-          </>
+          </div>
         )}
-
-        {/* Lyric Sections Bounding Blocks – sections stored in relative time, offset by masterCropStart */}
-        {duration > 0 && sections.map((sec) => {
-          const absStart = sec.start + masterCropStart;
-          const absEnd   = sec.end   + masterCropStart;
-          const leftPct  = (absStart / duration) * 100;
-          const widthPct = ((absEnd - absStart) / duration) * 100;
-          const isActive = activeSectionId === sec.id;
-
-          const linkedImg = images.find(img => img.id === sec.imageId);
-
-          return (
-            <div
-              key={sec.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectSection(sec.id);
-              }}
-              onMouseDown={(e) => {
-                if ((e.target as HTMLElement).closest('.drag-handle')) return;
-                setDragInfo({
-                  type: 'move',
-                  sectionId: sec.id,
-                  startX: e.clientX,
-                  startVal: sec.start,
-                  endVal: sec.end,
-                });
-              }}
-              className={`absolute top-2 bottom-2 z-20 rounded border lyric-block-overlay cursor-move flex flex-col justify-between p-1.5 transition-all ${
-                isActive
-                  ? 'bg-black/40 shadow-[0_0_15px_rgba(212,197,161,0.25)]'
-                  : 'bg-black/50 border-[#4b463c]/50 hover:border-[#d4c5a1]/40'
-              }`}
-              style={{ 
-                left: `${leftPct}%`, 
-                width: `${widthPct}%`, 
-                borderColor: isActive ? themeAccent : undefined,
-                boxShadow: isActive ? `0 0 15px ${themeAccent}40` : undefined
-              }}
-            >
-              {/* Top Details */}
-              <div className="flex justify-between items-center text-[8px] font-mono text-gray-400 pointer-events-none">
-                <span className="truncate">{sec.text || 'EMPTY'}</span>
-              </div>
-
-              {/* Linked image preview thumbnail */}
-              {linkedImg && (
-                <div className="w-5 h-5 rounded overflow-hidden bg-black/40 border border-[#4b463c]/30 pointer-events-none self-center">
-                  <img src={linkedImg.src} alt="" className="w-full h-full object-cover grayscale" />
-                </div>
-              )}
-
-              {/* Timeline segment label */}
-              <div className="text-[7px] font-mono text-gray-500 pointer-events-none text-center">
-                {absStart.toFixed(1)}s - {absEnd.toFixed(1)}s
-              </div>
-
-              {/* Drag handles */}
-              <div
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setDragInfo({
-                    type: 'left',
-                    sectionId: sec.id,
-                    startX: e.clientX,
-                    startVal: sec.start,
-                    endVal: sec.end,
-                  });
-                }}
-                className="absolute top-0 bottom-0 left-0 w-2 cursor-col-resize drag-handle hover:bg-[#d4c5a1]/40 flex items-center justify-center"
-              >
-                <div className="w-[1.5px] h-3 bg-[#4b463c]/80 rounded" />
-              </div>
-              <div
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setDragInfo({
-                    type: 'right',
-                    sectionId: sec.id,
-                    startX: e.clientX,
-                    startVal: sec.start,
-                    endVal: sec.end,
-                  });
-                }}
-                className="absolute top-0 bottom-0 right-0 w-2 cursor-col-resize drag-handle hover:bg-[#d4c5a1]/40 flex items-center justify-center"
-              >
-                <div className="w-[1.5px] h-3 bg-[#4b463c]/80 rounded" />
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
