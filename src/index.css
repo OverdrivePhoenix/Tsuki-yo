@@ -1,0 +1,317 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Dancing+Script:wght@700&family=Share+Tech+Mono&display=swap');
+@import "tailwindcss";
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(14, 14, 14, 0.65);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 197, 161, 0.15);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 144, 132, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4c5a1;
+}
+
+/* 3D Courtyard Animation Scoped Styles */
+.hero-section {
+  width: 100%;
+  height: 100%;
+  min-height: 562px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+  overflow: hidden;
+  position: relative;
+
+  .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .content {
+    position: relative;
+    border-radius: 40px;
+    animation: 200s linear infinite brightness;
+    overflow: hidden;
+  }
+
+  .container-full {
+    width: 1000px;
+    height: 562px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(1);
+    animation: 200s linear infinite zoom-in;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .backgroundImage {
+    position: absolute;
+    width: 1000px;
+    height: 562px;
+    object-fit: cover;
+    top: 0;
+    left: 0;
+    z-index: 1;
+  }
+
+  .boyImage {
+    position: absolute;
+    width: 1000px;
+    height: 562px;
+    object-fit: cover;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    animation: 200s linear infinite blur;
+  }
+
+  .cube, .face {
+    width: 870px;
+    height: 190px;
+  }
+
+  .cube {
+    position: relative;
+    transform-style: preserve-3d;
+    perspective: 480px;
+    perspective-origin: 51% 70%;
+    z-index: 4;
+  }
+
+  .face {
+    position: absolute;
+    background: transparent;
+    border: 0 solid #000;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .top, .bottom {
+    width: 870px;
+    height: 870px;
+  }
+
+  p {
+    white-space: nowrap;
+    overflow: hidden;
+    font-family: "Bebas Neue", sans-serif;
+    font-weight: 400;
+    font-size: calc(6em + (190px / 10) * 0.7);
+    padding-top: 20px;
+    color: #fff;
+  }
+
+  span {
+    color: #d4c5a1; /* Using gold color accent instead of pure red */
+  }
+
+  .front {
+    transform: translateZ(435px);
+    display: none;
+  }
+
+  .back {
+    transform: translateZ(-435px) rotateY(180deg) scaleX(-1);
+  }
+
+  .left {
+    transform: translateX(-435px) rotateY(-90deg) scaleX(-1);
+  }
+
+  .right {
+    transform: translateX(435px) rotateY(90deg) scaleX(-1);
+  }
+
+  .top {
+    transform: translateY(-435px) rotateX(90deg) scaleY(-1);
+  }
+
+  .bottom {
+    transform: translateY(-245px) rotateX(-90deg) scaleY(-1);
+  }
+
+  .left p {
+    margin-left: 480px;
+    animation: 200s linear infinite left;
+  }
+
+  .back p {
+    margin-left: -390px;
+    animation: 200s linear infinite back;
+  }
+
+  .right p {
+    margin-left: -1260px;
+    animation: 200s linear infinite right;
+  }
+
+  .hue {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 1000px;
+    height: 562px;
+    mix-blend-mode: overlay;
+    background: radial-gradient(ellipse at center, #1e5799 0%, #7db9e8 100%);
+    opacity: 1;
+
+    &.animated {
+      animation: 8s infinite filter-animation;
+    }
+  }
+
+  .container-reflect {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 380px;
+    filter: blur(10px);
+    z-index: 3;
+
+    .cube {
+      perspective-origin: 51% -30%;
+    }
+
+    .back {
+      transform: translateZ(-435px) rotateY(180deg) scaleX(-1) scaleY(-1);
+    }
+
+    .left {
+      transform: translateX(-435px) rotateY(-90deg) scaleX(-1) scaleY(-1);
+    }
+
+    .right {
+      transform: translateX(435px) rotateY(90deg) scaleX(-1) scaleY(-1);
+    }
+
+    p {
+      transform: scaleY(70%);
+    }
+  }
+}
+
+/* Keyframes */
+@keyframes left {
+  100% {
+    margin-left: -54000px;
+  }
+}
+
+@keyframes back {
+  100% {
+    margin-left: -54870px;
+  }
+}
+
+@keyframes right {
+  100% {
+    margin-left: -55740px;
+  }
+}
+
+@keyframes filter-animation {
+  0%, 100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(100deg);
+  }
+}
+
+@keyframes zoom-in {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.15); /* Keep it slightly scaled to fit constraints */
+  }
+}
+
+@keyframes blur {
+  0% {
+    filter: blur(0px);
+  }
+  100% {
+    filter: blur(3px);
+  }
+}
+
+@keyframes brightness {
+  0% {
+    filter: brightness(1) contrast(1);
+  }
+  100% {
+    filter: brightness(0.8) contrast(1.3);
+  }
+}
+
+@keyframes text-glow {
+  0%, 100% {
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Outro Font Selections */
+.font-serif-elegant {
+  font-family: 'Cinzel', Georgia, serif !important;
+}
+.font-script-hand {
+  font-family: 'Dancing Script', cursive !important;
+}
+.font-digital-mono {
+  font-family: 'Share Tech Mono', monospace !important;
+}
+.font-modern-sans {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Spatial Cinematic Page transitions */
+.animate-page-slide {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes slideInRight {
+  from {
+    transform: translateX(25px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Frosted envelope splash screen elements */
+.glass-envelope {
+  background: rgba(10, 10, 10, 0.45);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(212, 197, 161, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
