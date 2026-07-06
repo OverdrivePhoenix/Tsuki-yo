@@ -38,17 +38,21 @@ export const Performance: React.FC<PerformanceProps> = ({ data, onBackToDashboar
   const [activeSecEnd, setActiveSecEnd] = useState<number>(data.masterCropEnd);
   const [isPlayingState, setIsPlayingState] = useState<boolean>(false);
 
-  const handleCopyLink = () => {
-    const b64 = serializeGift(data as any);
-    const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
-    navigator.clipboard.writeText(url)
-      .then(() => {
-        setCopiedShare(true);
-        setTimeout(() => setCopiedShare(false), 3000);
-      })
-      .catch(() => {
-        alert("Failed to copy link automatically. Here is the URL: " + url);
-      });
+  const handleCopyLink = async () => {
+    try {
+      const b64 = await serializeGift(data as any);
+      const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setCopiedShare(true);
+          setTimeout(() => setCopiedShare(false), 3000);
+        })
+        .catch(() => {
+          alert("Failed to copy link automatically. Here is the URL: " + url);
+        });
+    } catch (e) {
+      console.error("Failed to copy share link:", e);
+    }
   };
 
   const audioRef = useRef<HTMLAudioElement | null>(null);

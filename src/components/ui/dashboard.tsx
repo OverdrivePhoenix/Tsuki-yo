@@ -1840,28 +1840,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                 <div className="border-t border-[#4b463c]/15 pt-4 flex flex-col gap-3">
                   <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">Share Gift Experience</span>
                   <button
-                    onClick={() => {
-                      const b64 = serializeGift({
-                        recipientName,
-                        outroMessage,
-                        outroFont,
-                        images,
-                        lyrics: sections,
-                        audioUrl,
-                        masterCropStart,
-                        masterCropEnd,
-                        stylePreset
-                      });
-                      const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
-                      setShareUrl(url);
-                      navigator.clipboard.writeText(url)
-                        .then(() => {
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 3000);
-                        })
-                        .catch(() => {
-                          alert("Could not copy link automatically. Please copy the URL from the text box below.");
+                    onClick={async () => {
+                      try {
+                        const b64 = await serializeGift({
+                          recipientName,
+                          outroMessage,
+                          outroFont,
+                          images,
+                          lyrics: sections,
+                          audioUrl,
+                          masterCropStart,
+                          masterCropEnd,
+                          stylePreset
                         });
+                        const url = `${window.location.origin}${window.location.pathname}?gift=${b64}`;
+                        setShareUrl(url);
+                        navigator.clipboard.writeText(url)
+                          .then(() => {
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 3000);
+                          })
+                          .catch(() => {
+                            alert("Could not copy link automatically. Please copy the URL from the text box below.");
+                          });
+                      } catch (e) {
+                        console.error("Failed to serialize and copy gift URL:", e);
+                      }
                     }}
                     className="w-full bg-[#1c1b1b]/50 border border-[#4b463c]/40 hover:bg-[#ff007f]/10 text-white font-mono text-xs uppercase py-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     style={{ borderColor: copied ? theme.accent : undefined }}

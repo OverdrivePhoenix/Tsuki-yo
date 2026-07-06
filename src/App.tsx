@@ -15,7 +15,7 @@ export interface GiftData {
   stylePreset: 'matrix_rain' | 'anime_vignette';
 }
 
-export const serializeGift = (data: GiftData): string => {
+export const serializeGift = async (data: GiftData): Promise<string> => {
   const cleanImages = data.images.map(img => {
     const isBase64 = img.src.startsWith('data:');
     return {
@@ -50,30 +50,100 @@ export const serializeGift = (data: GiftData): string => {
   };
 
   const json = JSON.stringify(compactData);
-  const utf8Bytes = new TextEncoder().encode(json);
-  const binString = Array.from(utf8Bytes, (byte) => String.fromCharCode(byte)).join("");
+  const bytes = new TextEncoder().encode(json);
+
+  if (typeof CompressionStream !== 'undefined') {
+    try {
+      const cs = new CompressionStream('gzip');
+      const writer = cs.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+
+      const reader = cs.readable.getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+
+      let totalLength = 0;
+      for (const chunk of chunks) totalLength += chunk.length;
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const binString = Array.from(result, (byte) => String.fromCharCode(byte)).join("");
+      return btoa(binString)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    } catch (e) {
+      console.warn("CompressionStream failed, falling back to uncompressed serialization", e);
+    }
+  }
+
+  const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
   return btoa(binString)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 };
 
-export const deserializeGift = (b64: string): GiftData | null => {
+export const deserializeGift = async (b64: string): Promise<GiftData | null> => {
   try {
     let base64 = b64.replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) {
       base64 += '=';
     }
     const binString = atob(base64);
-    const utf8Bytes = Uint8Array.from(binString, (char) => char.charCodeAt(0));
-    const json = new TextDecoder().decode(utf8Bytes);
+    const bytes = Uint8Array.from(binString, (char) => char.charCodeAt(0));
+
+    let json: string | null = null;
+
+    if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b && typeof DecompressionStream !== 'undefined') {
+      try {
+        const ds = new DecompressionStream('gzip');
+        const writer = ds.writable.getWriter();
+        writer.write(bytes);
+        writer.close();
+
+        const reader = ds.readable.getReader();
+        const chunks: Uint8Array[] = [];
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+
+        let totalLength = 0;
+        for (const chunk of chunks) totalLength += chunk.length;
+        const result = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+          result.set(chunk, offset);
+          offset += chunk.length;
+        }
+        json = new TextDecoder().decode(result);
+      } catch (e) {
+        console.error("Failed to decompress gzip stream", e);
+        return null;
+      }
+    } else {
+      json = new TextDecoder().decode(bytes);
+    }
+
+    if (!json) return null;
     const compact = JSON.parse(json);
 
     return {
       recipientName: compact.r,
       outroMessage: compact.m,
       outroFont: compact.f || 'modern',
-      images: compact.i.map((img: any) => ({
+      images: (compact.i || []).map((img: any) => ({
         id: img.id,
         name: img.name,
         src: img.src || '',
@@ -83,7 +153,7 @@ export const deserializeGift = (b64: string): GiftData | null => {
         cropOffsetX: img.cropOffsetX,
         cropOffsetY: img.cropOffsetY
       })),
-      lyrics: compact.l.map((sec: any, idx: number) => ({
+      lyrics: (compact.l || []).map((sec: any, idx: number) => ({
         id: `sec-${idx}`,
         start: sec.s,
         end: sec.e,
@@ -113,13 +183,14 @@ function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const giftParam = urlParams.get('gift');
       if (giftParam) {
-        const data = deserializeGift(giftParam);
-        if (data) {
-          setGiftData(data);
-          setViewState('performance');
-        } else {
-          setGiftLoadError('The gift link appears to be corrupted or incomplete. Please ensure you copied the entire URL.');
-        }
+        deserializeGift(giftParam).then((data) => {
+          if (data) {
+            setGiftData(data);
+            setViewState('performance');
+          } else {
+            setGiftLoadError('The gift link appears to be corrupted or incomplete. Please ensure you copied the entire URL.');
+          }
+        });
       }
     }
   }, []);
