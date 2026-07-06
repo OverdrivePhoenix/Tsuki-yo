@@ -60,7 +60,7 @@ export const serializeGift = (data: GiftData): string => {
 
 export const deserializeGift = (b64: string): GiftData | null => {
   try {
-    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    let base64 = b64.replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) {
       base64 += '=';
     }
@@ -106,6 +106,7 @@ export const deserializeGift = (b64: string): GiftData | null => {
 function App() {
   const [viewState, setViewState] = useState<'editor' | 'performance'>('editor');
   const [giftData, setGiftData] = useState<GiftData | null>(null);
+  const [giftLoadError, setGiftLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -116,6 +117,8 @@ function App() {
         if (data) {
           setGiftData(data);
           setViewState('performance');
+        } else {
+          setGiftLoadError('The gift link appears to be corrupted or incomplete. Please ensure you copied the entire URL.');
         }
       }
     }
@@ -126,11 +129,50 @@ function App() {
     setViewState('performance');
   };
 
+  if (giftLoadError) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#131313] font-sans px-6 select-none">
+        <div className="max-w-md w-full p-8 rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_50px_rgba(239,68,68,0.1)] text-center flex flex-col items-center gap-6 animate-fade-in">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286Zm0 13.036h.008v.008H12v-.008Z" />
+            </svg>
+          </div>
+          <div>
+            <span className="font-mono text-[10px] text-red-400 uppercase tracking-[0.3em] font-bold">Decoding Failure</span>
+            <h2 className="text-xl font-extrabold tracking-widest text-white uppercase mt-2">
+              Invalid Gift Link
+            </h2>
+          </div>
+          <p className="text-xs text-gray-300 font-mono leading-relaxed">
+            {giftLoadError}
+          </p>
+          <button
+            onClick={() => {
+              setGiftLoadError(null);
+              if (typeof window !== 'undefined') {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            }}
+            className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold uppercase tracking-wider py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(239,68,68,0.25)] hover:shadow-[0_0_35px_rgba(239,68,68,0.45)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
+            Create Your Own Gift
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (viewState === 'performance' && giftData) {
     return (
       <Performance
         data={giftData}
-        onBackToDashboard={() => setViewState('editor')}
+        onBackToDashboard={() => {
+          setViewState('editor');
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }}
       />
     );
   }
