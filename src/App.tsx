@@ -252,8 +252,31 @@ function App() {
     <div className="h-screen w-full overflow-hidden flex flex-col font-sans bg-[#131313] text-[#e5e2e1] antialiased">
       {/* Top App Bar */}
       <header className="bg-[#131313]/90 backdrop-blur-xl border-b border-[#4b463c]/20 flex justify-between items-center px-10 py-4 w-full shrink-0 z-50">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-[#d4c5a1] uppercase tracking-[0.25em]">
+        <div className="flex items-center gap-3 select-none">
+          <svg className="w-8 h-8 filter drop-shadow-[0_0_8px_rgba(255,20,147,0.4)]" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <filter id="header-neon" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="8" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <g filter="url(#header-neon)">
+              <path d="M 285 95 A 120 120 0 1 0 310 220" fill="none" stroke="#ff1493" strokeWidth="14" strokeLinecap="round"/>
+              <line x1="120" y1="280" x2="120" y2="340" stroke="#ff1493" strokeWidth="12" strokeDasharray="10, 15, 5" strokeLinecap="round"/>
+              <line x1="150" y1="300" x2="150" y2="370" stroke="#ff1493" strokeWidth="14" strokeDasharray="5, 10, 20" strokeLinecap="round"/>
+              <line x1="180" y1="315" x2="180" y2="390" stroke="#ff1493" strokeWidth="16" strokeDasharray="20, 10, 5" strokeLinecap="round"/>
+              <line x1="210" y1="315" x2="210" y2="360" stroke="#ff1493" strokeWidth="14" strokeDasharray="8, 12" strokeLinecap="round"/>
+              <line x1="240" y1="295" x2="240" y2="350" stroke="#ff1493" strokeWidth="12" strokeDasharray="15, 8" strokeLinecap="round"/>
+              <line x1="270" y1="265" x2="270" y2="310" stroke="#ff1493" strokeWidth="12" strokeDasharray="5, 10, 5" strokeLinecap="round"/>
+              <circle cx="300" cy="80" r="7" fill="#ff1493"/>
+              <circle cx="325" cy="110" r="9" fill="#ff1493"/>
+              <circle cx="340" cy="145" r="6" fill="#ff1493"/>
+              <circle cx="335" cy="180" r="5" fill="#ff1493"/>
+            </g>
+            <text x="180" y="210" fontFamily="sans-serif" fontSize="84" fontWeight="900" fill="#ffffff" textAnchor="middle" filter="url(#header-neon)">月夜</text>
+          </svg>
+          <h1 className="text-base font-extrabold text-[#ffffff] uppercase tracking-[0.35em] font-sans bg-gradient-to-r from-white via-[#ffb6c1] to-[#ff1493] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,20,147,0.2)]">
             TSUKI-YO
           </h1>
           <span className="text-[10px] font-mono text-gray-500 border border-[#4b463c]/30 px-2 py-0.5 rounded uppercase">
