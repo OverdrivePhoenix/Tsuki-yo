@@ -778,6 +778,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
     return 0;
   };
 
+  // Proxy utilities to bypass CORS in browser client
+  const fetchWithProxy = async (url: string): Promise<any> => {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+    const wrapper = await res.json();
+    return JSON.parse(wrapper.contents);
+  };
+
+  const fetchTextWithProxy = async (url: string): Promise<string> => {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+    const wrapper = await res.json();
+    return wrapper.contents;
+  };
+
   // Helper to extract subtitles by YouTube Video ID
   const fetchSubtitlesFromYoutubeById = async (videoId: string): Promise<{ absoluteStart: number; text: string }[] | null> => {
     const pipedInstances = [
@@ -791,10 +808,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
     for (const instance of pipedInstances) {
       try {
         const streamUrl = `${instance}/streams/${videoId}`;
-        const streamRes = await fetch(streamUrl);
-        if (!streamRes.ok) continue;
-
-        const streamData = await streamRes.json();
+        const streamData = await fetchWithProxy(streamUrl);
         if (!streamData.subtitles || streamData.subtitles.length === 0) continue;
 
         const subs = streamData.subtitles;
@@ -806,10 +820,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
 
         if (!bestSub || !bestSub.url) continue;
 
-        const subRes = await fetch(bestSub.url);
-        if (!subRes.ok) continue;
-
-        const ttmlText = await subRes.text();
+        const ttmlText = await fetchTextWithProxy(bestSub.url);
         const parsedLyrics: { absoluteStart: number; text: string }[] = [];
         const pRegex = /<p\s+begin="([^"]+)"[^>]*>([\s\S]*?)<\/p>/gi;
         let match;
@@ -871,10 +882,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
     for (const instance of pipedInstances) {
       try {
         const searchUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&filter=videos`;
-        const searchRes = await fetch(searchUrl);
-        if (!searchRes.ok) continue;
-
-        const searchData = await searchRes.json();
+        const searchData = await fetchWithProxy(searchUrl);
         const video = searchData.items?.find((item: any) => item.type === "stream" || item.type === "video") || searchData.items?.[0];
         if (!video || !video.url) continue;
 
