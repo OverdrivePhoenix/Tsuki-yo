@@ -977,7 +977,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
       if (lrcRes.ok) {
         const data = await lrcRes.json();
         if (data && data.length > 0) {
-          const trackInfo = data[0];
+          let trackInfo = data[0];
+          let bestScore = -1;
+          for (const item of data) {
+            let score = 0;
+            const itemArtist = (item.artistName || "").toLowerCase().trim();
+            const itemTrack = (item.trackName || "").toLowerCase().trim();
+            const targetArtist = cleanArtist.toLowerCase().trim();
+            const targetTrack = cleanTrack.toLowerCase().trim();
+
+            if (itemArtist === targetArtist) score += 10;
+            else if (itemArtist.includes(targetArtist) || targetArtist.includes(itemArtist)) score += 5;
+
+            if (itemTrack === targetTrack) score += 10;
+            else if (itemTrack.includes(targetTrack) || targetTrack.includes(itemTrack)) score += 5;
+
+            if (item.syncedLyrics) score += 5;
+
+            if (score > bestScore) {
+              bestScore = score;
+              trackInfo = item;
+            }
+          }
 
           if (trackInfo.syncedLyrics) {
             const parsed = parseLrc(trackInfo.syncedLyrics);
