@@ -780,6 +780,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
 
   // Proxy utilities to bypass CORS in browser client
   const fetchTextWithProxy = async (url: string): Promise<string> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.text();
+      }
+    } catch (e) {
+      console.warn("Direct subtitle fetch failed, trying proxy:", e);
+    }
+
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
     const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
@@ -787,7 +799,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
     return wrapper.contents;
   };
 
-  // Dynamically race multiple public Piped API instances in parallel to bypass CORS & rate limits
+  // Dynamically query multiple public Piped API instances sequentially to bypass CORS & rate limits
   const queryPipedInstances = async (path: string): Promise<any> => {
     const pipedInstances = [
       "https://api.piped.private.coffee",
@@ -799,21 +811,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
       "https://yt.artemislena.eu"
     ];
 
-    const promises = pipedInstances.map(async (instance) => {
-      const url = `${instance}${path}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Proxy failed on ${instance}`);
-      const wrapper = await res.json();
-      if (!wrapper.contents) throw new Error(`Empty content from proxy on ${instance}`);
-      const data = JSON.parse(wrapper.contents);
-      if (data.error || data.message === "Internal Server Error") {
-        throw new Error(`Instance error on ${instance}: ${data.error || data.message}`);
-      }
-      return data;
-    });
+    for (const instance of pipedInstances) {
+      try {
+        const url = `${instance}${path}`;
+        
+        // Try direct fetch first (no proxy, very fast, preserves headers)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && !data.error && data.message !== "Internal Server Error") {
+              return data;
+            }
+          }
+        } catch (corsErr) {
+          // If direct fetch fails (e.g. CORS or offline), try via AllOrigins proxy
+          console.warn(`Direct fetch failed on ${instance}, trying proxy:`, corsErr);
+        }
 
-    return Promise.any(promises);
+        // Try via proxy
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+        const res = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+          const wrapper = await res.json();
+          if (wrapper.contents) {
+            const data = JSON.parse(wrapper.contents);
+            if (data && !data.error && data.message !== "Internal Server Error") {
+              return data;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Instance failed: ${instance}`, e);
+      }
+    }
+    throw new Error("All Piped instances failed");
   };
 
   // Helper to extract subtitles by YouTube Video ID
