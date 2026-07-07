@@ -923,6 +923,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
     }
   };
 
+  const handleSectionTimeBlur = () => {
+    const sorted = [...sections].sort((a, b) => a.start - b.start);
+    setSections(sorted);
+    pushHistory(sorted);
+  };
+
   const deleteActiveSection = (id: string) => {
     const filtered = sections.filter(s => s.id !== id);
     setSections(filtered);
@@ -987,34 +993,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
 
   return (
     <div 
-      className="flex-1 flex flex-col w-full h-full relative overflow-hidden bg-[#131313] notranslate" 
+      className="flex-1 flex flex-col w-full min-h-0 relative overflow-x-hidden lg:overflow-hidden bg-[#131313] notranslate" 
       translate="no"
       style={{ '--accent-color': theme.accent } as React.CSSProperties}
     >
       <MatrixRain opacity={0.12} stylePreset={stylePreset} />
 
       {/* Wizard Progress Header */}
-      <div className="w-full bg-[#1c1b1b]/80 border-b border-[#4b463c]/20 px-10 py-4 flex items-center justify-between z-10 shrink-0">
-        <div className="flex items-center gap-8">
+      <div className="w-full bg-[#1c1b1b]/80 border-b border-[#4b463c]/20 px-4 lg:px-10 py-3 lg:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10 shrink-0">
+        <div className="flex items-center gap-3 lg:gap-8">
           <div className="flex items-center gap-2">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all ${
               step >= 1 ? `${theme.bgAccent} text-black` : 'bg-gray-800 text-gray-500'
             }`}>1</span>
-            <span className={`text-xs font-mono uppercase tracking-wider transition-colors ${step === 1 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Canvas Setup</span>
+            <span className={`text-[10px] lg:text-xs font-mono uppercase tracking-wider transition-colors hidden sm:inline ${step === 1 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Canvas Setup</span>
           </div>
-          <div className="w-8 h-[1px] bg-gray-700"></div>
+          <div className="w-4 lg:w-8 h-[1px] bg-gray-700"></div>
           <div className="flex items-center gap-2">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all ${
               step >= 2 ? `${theme.bgAccent} text-black` : 'bg-gray-800 text-gray-500'
             }`}>2</span>
-            <span className={`text-xs font-mono uppercase tracking-wider transition-colors ${step === 2 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Core Composer</span>
+            <span className={`text-[10px] lg:text-xs font-mono uppercase tracking-wider transition-colors hidden sm:inline ${step === 2 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Core Composer</span>
           </div>
-          <div className="w-8 h-[1px] bg-gray-700"></div>
+          <div className="w-4 lg:w-8 h-[1px] bg-gray-700"></div>
           <div className="flex items-center gap-2">
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all ${
               step >= 3 ? `${theme.bgAccent} text-black` : 'bg-gray-800 text-gray-500'
             }`}>3</span>
-            <span className={`text-xs font-mono uppercase tracking-wider transition-colors ${step === 3 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Polish & Export</span>
+            <span className={`text-[10px] lg:text-xs font-mono uppercase tracking-wider transition-colors hidden sm:inline ${step === 3 ? `${theme.textAccent} font-bold` : 'text-gray-500'}`}>Polish & Export</span>
           </div>
         </div>
 
@@ -1027,14 +1033,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
       </div>
 
       {/* Main Workspace Area with Cinematic Spatial Slide transition */}
-      <div key={step} className="flex-1 flex w-full overflow-hidden relative z-10 animate-page-slide">
+      <div key={step} className="flex-1 flex w-full overflow-x-hidden lg:overflow-hidden relative z-10 animate-page-slide">
 
         {/* ==============================================
             STEP 1: CANVAS SETUP
             ============================================== */}
         {step === 1 && (
-          <div className="flex-1 flex w-full h-full overflow-hidden">
-            <div className="w-[450px] border-r border-[#4b463c]/20 p-8 flex flex-col gap-6 overflow-y-auto bg-[#131313]/50 backdrop-blur-md">
+          <div className="flex-1 flex flex-col lg:flex-row w-full h-full overflow-y-auto lg:overflow-hidden">
+            <div className="w-full lg:w-[450px] border-b lg:border-b-0 lg:border-r border-[#4b463c]/20 p-6 lg:p-8 flex flex-col gap-6 bg-[#131313]/50 backdrop-blur-md shrink-0">
               <div>
                 <h2 className="text-[#d4c5a1] text-base font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: theme.accent }}>
                   <User className="w-4 h-4" /> Recipient Details
@@ -1047,7 +1053,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       maxLength={50}
                       value={recipientName}
                       onChange={(e) => setRecipientName(e.target.value.toUpperCase())}
-                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-white font-mono uppercase focus:outline-none focus:border-[var(--accent-color)]"
+                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-white font-mono uppercase focus:outline-none focus:border-[var(--accent-color)] text-base lg:text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -1057,7 +1063,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       maxLength={300}
                       value={outroMessage}
                       onChange={(e) => setOutroMessage(e.target.value)}
-                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-white text-xs resize-none focus:outline-none focus:border-[var(--accent-color)]"
+                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-white text-base lg:text-xs resize-none focus:outline-none focus:border-[var(--accent-color)]"
                     />
                   </div>
                   
@@ -1067,7 +1073,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                     <select
                       value={outroFont}
                       onChange={(e) => setOutroFont(e.target.value)}
-                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
+                      className="w-full bg-[#1c1b1b] border border-[#4b463c]/30 rounded px-3 py-2 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
                     >
                       <option value="modern">Modern Sans (Clean)</option>
                       <option value="serif">Elegant Serif (Cinzel)</option>
@@ -1128,14 +1134,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
             </div>
 
             {/* Crop alignment viewport */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0e0e0e]/40">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8 bg-[#0e0e0e]/40 min-h-[380px] lg:min-h-0">
               {activeImageObj ? (
                 <div className="flex flex-col items-center gap-6 max-w-lg w-full">
                   <span className="text-xs font-mono text-gray-500 uppercase tracking-widest text-center">
                     Image Alignment Crop Guide
                   </span>
                   
-                  <div className="w-[384px] h-[216px] border border-[#d4c5a1]/30 overflow-hidden relative shadow-2xl bg-black rounded-lg" style={{ borderColor: theme.accent }}>
+                  <div className="w-full max-w-[384px] aspect-video border border-[#d4c5a1]/30 overflow-hidden relative shadow-2xl bg-black rounded-lg" style={{ borderColor: theme.accent }}>
                     <div className="absolute inset-0 border border-[#d4c5a1]/40 pointer-events-none z-10 rounded-lg" style={{ borderColor: theme.accent }}></div>
                     <div className="absolute inset-0 bg-[#0e0e0e]/20 z-0"></div>
                     
@@ -1239,21 +1245,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
             STEP 2: CORE COMPOSER (TIMELINE & MUSIC SEARCH)
             ============================================== */}
         {step === 2 && (
-          <div className="flex-1 flex flex-col p-8 overflow-hidden h-full gap-4">
+          <div className="flex-1 flex flex-col p-4 lg:p-8 overflow-y-auto lg:overflow-hidden h-full gap-4">
             
             {/* Top row: Visual Timeline */}
             <div className="w-full bg-[#1c1b1b]/80 border border-[#4b463c]/20 p-5 rounded-xl backdrop-blur-md shrink-0 flex flex-col gap-4">
               
               {/* Online Music Search Bar */}
               <div className="border-b border-[#4b463c]/15 pb-4 flex flex-col gap-3">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     placeholder="Search online tracks & preview audio (e.g. Hans Zimmer, Interstellar)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleMusicSearch(); }}
-                    className="flex-1 bg-black border border-[#4b463c]/30 rounded-lg px-4 py-2 text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)] transition-all"
+                    className="flex-1 bg-black border border-[#4b463c]/30 rounded-lg px-4 py-2 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)] transition-all"
                   />
                   <button
                     onClick={handleMusicSearch}
@@ -1341,14 +1347,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
               {/* Dynamic Lyric-only search bar for uploaded tracks */}
               <div className="border-b border-[#4b463c]/15 pb-4 flex flex-col gap-3">
                 <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">Search & Import Synced Lyrics (.lrc)</span>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     placeholder="Search song lyrics (e.g. Bruno Mars - Die With A Smile)..."
                     value={lyricsSearchQuery}
                     onChange={(e) => setLyricsSearchQuery(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLyricsSearch(); }}
-                    className="flex-1 bg-black border border-[#4b463c]/30 rounded-lg px-4 py-2 text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)] transition-all"
+                    className="flex-1 bg-black border border-[#4b463c]/30 rounded-lg px-4 py-2 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)] transition-all"
                   />
                   <button
                     onClick={handleLyricsSearch}
@@ -1431,7 +1437,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                           setLyricOffset(0);
                         }
                       }}
-                      className="flex-1 bg-black border border-[#4b463c]/30 rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
+                      className="flex-1 bg-black border border-[#4b463c]/30 rounded px-2 py-1.5 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
                     >
                       <option value="-1">-- Select the first lyric line you hear to auto-align --</option>
                       {masterLyrics.map((lyric, idx) => (
@@ -1452,12 +1458,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                 </div>
               )}
 
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <h2 className="text-[#d4c5a1] text-sm font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: theme.accent }}>
                   <Music className="w-4 h-4 animate-pulse" /> Timeline Bounding Blocks
                 </h2>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="relative border border-dashed border-[#4b463c]/30 rounded px-3 py-1.5 hover:bg-black/30 transition-colors group cursor-pointer flex items-center gap-2 text-xs">
                     <input
                       type="file"
@@ -1514,7 +1520,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
               />
 
               {/* Play head control line with Undo/Redo & Playback Speed Controls */}
-              <div className="flex items-center gap-4 bg-black/40 p-2.5 rounded border border-[#4b463c]/15 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-3 lg:gap-4 bg-black/40 p-3 lg:p-2.5 rounded border border-[#4b463c]/15 text-xs font-mono">
                 <button
                   onClick={togglePlay}
                   className="text-black rounded px-3 py-1 flex items-center gap-1 transition-all text-xs font-bold"
@@ -1572,7 +1578,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       updateCropStart(val);
                       if (audioRef.current) audioRef.current.currentTime = val;
                     }}
-                    className="w-14 bg-black border border-[#4b463c]/20 rounded text-center text-white"
+                    className="w-16 bg-black border border-[#4b463c]/20 rounded text-center text-white text-base lg:text-xs py-0.5"
                   />
                   <span className="text-gray-600">-</span>
                   <input
@@ -1585,7 +1591,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       const val = Math.max(masterCropStart + 1, Math.min(duration || 180, parseFloat(e.target.value) || duration || 180));
                       updateCropEnd(val);
                     }}
-                    className="w-14 bg-black border border-[#4b463c]/20 rounded text-center text-white"
+                    className="w-16 bg-black border border-[#4b463c]/20 rounded text-center text-white text-base lg:text-xs py-0.5"
                   />
                 </div>
 
@@ -1608,7 +1614,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       <Trash2 className="w-3.5 h-3.5" /> Delete Segment
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-gray-400 uppercase font-semibold font-mono">Lyric Text String</label>
                       <input
@@ -1618,7 +1624,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                         onBlur={() => pushHistory(sections)}
                         onKeyDown={(e) => { if (e.key === 'Enter') pushHistory(sections); }}
                         placeholder="ENTER LYRIC STRING..."
-                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-[var(--accent-color)]"
+                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-base lg:text-xs text-white font-mono uppercase focus:outline-none focus:border-[var(--accent-color)]"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -1626,13 +1632,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
                       <select
                         value={activeSectionObj.imageId}
                         onChange={(e) => updateSectionField(activeSectionObj.id, 'imageId', e.target.value)}
-                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
+                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
                       >
                         <option value="">No Portrait (Default Green/Gold Stitches)</option>
                         {images.map(img => (
                           <option key={img.id} value={img.id}>{img.name}</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold font-mono">Start Time (sec)</label>
+                        <span className="text-[9px] text-gray-500 font-mono">Relative to Crop</span>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={(activeSectionObj.end - 0.1).toFixed(1)}
+                        step="0.1"
+                        value={parseFloat(activeSectionObj.start.toFixed(1))}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(activeSectionObj.end - 0.1, parseFloat(e.target.value) || 0));
+                          updateSectionField(activeSectionObj.id, 'start', parseFloat(val.toFixed(1)));
+                        }}
+                        onBlur={handleSectionTimeBlur}
+                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold font-mono">End Time (sec)</label>
+                        <span className="text-[9px] text-gray-500 font-mono">Max: 60s</span>
+                      </div>
+                      <input
+                        type="number"
+                        min={(activeSectionObj.start + 0.1).toFixed(1)}
+                        max={(masterCropEnd - masterCropStart).toFixed(1)}
+                        step="0.1"
+                        value={parseFloat(activeSectionObj.end.toFixed(1))}
+                        onChange={(e) => {
+                          const val = Math.max(activeSectionObj.start + 0.1, Math.min(masterCropEnd - masterCropStart, parseFloat(e.target.value) || 0));
+                          updateSectionField(activeSectionObj.id, 'end', parseFloat(val.toFixed(1)));
+                        }}
+                        onBlur={handleSectionTimeBlur}
+                        className="w-full bg-black border border-[#4b463c]/30 rounded px-3 py-1.5 text-base lg:text-xs text-white font-mono focus:outline-none focus:border-[var(--accent-color)]"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1644,10 +1688,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
             </div>
 
             {/* Split composer list bottom panel */}
-            <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-[400px] lg:min-h-0 lg:overflow-hidden">
               
               {/* Left Column: Chapters scroll list */}
-              <div className="flex-1 bg-[#1c1b1b]/60 border border-[#4b463c]/20 rounded-xl p-5 flex flex-col min-h-0">
+              <div className="flex-1 bg-[#1c1b1b]/60 border border-[#4b463c]/20 rounded-xl p-4 lg:p-5 flex flex-col min-h-[300px] lg:min-h-0">
                 <div className="flex justify-between items-center mb-3 shrink-0">
                   <h3 className="text-white text-xs font-bold font-mono uppercase tracking-wider">Chapters Sequence</h3>
                   <button
@@ -1729,7 +1773,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
               </div>
 
               {/* Right Column: Advanced tuning for focused segment */}
-              <div className="w-[320px] bg-[#1c1b1b]/60 border border-[#4b463c]/20 rounded-xl p-5 flex flex-col shrink-0 min-h-0 justify-center">
+              <div className="w-full lg:w-[320px] bg-[#1c1b1b]/60 border border-[#4b463c]/20 rounded-xl p-4 lg:p-5 flex flex-col shrink-0 min-h-[220px] lg:min-h-0 justify-center">
                 {activeSectionObj ? (
                   <div className="flex flex-col gap-4 h-full justify-between">
                     <div>
@@ -1795,9 +1839,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
             STEP 3: POLISH & EXPORT (PLAYER PREVIEW)
             ============================================== */}
         {step === 3 && (
-          <div className="flex-1 flex w-full h-full overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row w-full h-full overflow-y-auto lg:overflow-hidden">
             {/* Styles Panel */}
-            <div className="w-[380px] border-r border-[#4b463c]/20 p-8 flex flex-col gap-6 overflow-y-auto bg-black/30 backdrop-blur-md">
+            <div className="w-full lg:w-[380px] border-b lg:border-b-0 lg:border-r border-[#4b463c]/20 p-6 lg:p-8 flex flex-col gap-6 bg-black/30 backdrop-blur-md shrink-0">
               <div className="flex flex-col gap-6">
                 <div className="border-b border-[#4b463c]/15 pb-2">
                   <h2 className="text-[#d4c5a1] text-base font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: theme.accent }}>
@@ -1908,7 +1952,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
             </div>
 
             {/* Canvas Preview Frame */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0e0e0e]/40">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8 bg-[#0e0e0e]/40 min-h-[280px] lg:min-h-0">
               <div className="w-full max-w-2xl aspect-video rounded-xl border border-[#4b463c]/30 overflow-hidden relative bg-[#131313] flex items-center justify-center shadow-2xl">
                 <div className="absolute inset-0 bg-black/60 z-0"></div>
                 
@@ -1945,7 +1989,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onPreview }) => {
       </div>
 
       {/* Footer controls */}
-      <div className="w-full bg-[#1c1b1b]/80 border-t border-[#4b463c]/20 px-10 py-5 flex items-center justify-between z-10 shrink-0">
+      <div className="w-full bg-[#1c1b1b]/80 border-t border-[#4b463c]/20 px-4 lg:px-10 py-4 lg:py-5 flex items-center justify-between z-10 shrink-0">
         <button
           onClick={() => setStep(s => Math.max(1, s - 1) as any)}
           disabled={step === 1}

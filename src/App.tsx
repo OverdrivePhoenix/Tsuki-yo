@@ -202,7 +202,7 @@ function App() {
 
   if (giftLoadError) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#131313] font-sans px-6 select-none">
+      <div className="h-[100dvh] w-full flex items-center justify-center bg-[#131313] font-sans px-6 select-none">
         <div className="max-w-md w-full p-8 rounded-2xl border border-red-500/20 bg-black/40 backdrop-blur-md shadow-[0_0_50px_rgba(239,68,68,0.1)] text-center flex flex-col items-center gap-6 animate-fade-in">
           <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -249,9 +249,9 @@ function App() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden flex flex-col font-sans bg-[#131313] text-[#e5e2e1] antialiased">
+    <div className="h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden flex flex-col font-sans bg-[#131313] text-[#e5e2e1] antialiased">
       {/* Top App Bar */}
-      <header className="bg-[#131313]/90 backdrop-blur-xl border-b border-[#4b463c]/20 flex justify-between items-center px-10 py-4 w-full shrink-0 z-50">
+      <header className="bg-[#131313]/90 backdrop-blur-xl border-b border-[#4b463c]/20 flex justify-between items-center px-4 lg:px-10 py-3 lg:py-4 w-full shrink-0 z-50">
         <div className="flex items-center gap-3 select-none">
           <svg className="w-8 h-8 filter drop-shadow-[0_0_8px_rgba(255,20,147,0.4)]" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
             <filter id="header-neon" x="-20%" y="-20%" width="140%" height="140%">
@@ -286,7 +286,7 @@ function App() {
       </header>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex w-full h-full overflow-hidden relative">
+      <main className="flex-1 flex w-full min-h-0 overflow-x-hidden lg:overflow-hidden relative">
         <Dashboard onPreview={handleLaunchPerformance} />
       </main>
     </div>
