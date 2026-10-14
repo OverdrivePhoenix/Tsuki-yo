@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MEC PreFetch - Checkout &amp; Dynamic Pickup Token</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed": "#d6e3fe",
+            "surface-tint": "#525f75",
+            "on-error": "#ffffff",
+            "electric-cyan": "#00E5FF",
+            "on-primary-fixed": "#0e1c2f",
+            "on-secondary-container": "#00616d",
+            "on-tertiary-fixed-variant": "#005226",
+            "surface-container": "#e7eeff",
+            "tertiary-container": "#00210b",
+            "inverse-on-surface": "#ecf1ff",
+            "surface-container-highest": "#d8e3fb",
+            "on-primary": "#ffffff",
+            "upi-brand-indigo": "#5F259F",
+            "tertiary": "#000000",
+            "on-tertiary-fixed": "#00210b",
+            "on-secondary-fixed-variant": "#004f58",
+            "inverse-surface": "#263143",
+            "primary-container": "#0e1c2f",
+            "outline": "#75777d",
+            "on-tertiary-container": "#00984c",
+            "tertiary-fixed-dim": "#00e475",
+            "surface": "#f9f9ff",
+            "surface-variant": "#d8e3fb",
+            "on-primary-container": "#77849c",
+            "primary": "#000000",
+            "mec-navy-tint": "#1E2E45",
+            "emerald-telemetry": "#00E676",
+            "mec-navy": "#0B192C",
+            "inverse-primary": "#bac7e1",
+            "on-secondary-fixed": "#001f24",
+            "surface-admin-desk": "#060D17",
+            "surface-dim": "#cfdaf2",
+            "surface-container-high": "#dee8ff",
+            "on-surface-variant": "#44474c",
+            "outline-variant": "#c5c6cd",
+            "tertiary-fixed": "#62ff96",
+            "error-container": "#ffdad6",
+            "on-secondary": "#ffffff",
+            "secondary": "#006875",
+            "secondary-fixed": "#9cf0ff",
+            "on-surface": "#111c2d",
+            "terminal-amber": "#FFB300",
+            "secondary-container": "#00e3fd",
+            "background": "#f9f9ff",
+            "surface-container-lowest": "#ffffff",
+            "on-background": "#111c2d",
+            "surface-bright": "#f9f9ff",
+            "primary-fixed-dim": "#bac7e1",
+            "error": "#ba1a1a",
+            "surface-canvas": "#F8FAFC",
+            "on-primary-fixed-variant": "#3a475c",
+            "stock-critical": "#FF3366",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#f0f3ff",
+            "secondary-fixed-dim": "#00daf3"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter-desktop": "1.5rem",
+            "space-lg": "1rem",
+            "space-2xl": "2rem",
+            "space-sm": "0.5rem",
+            "space-2xs": "0.125rem",
+            "margin-desktop": "2rem",
+            "gutter": "1rem",
+            "space-xs": "0.25rem",
+            "space-md": "0.75rem",
+            "margin": "1rem",
+            "space-xl": "1.5rem",
+            "space-3xl": "3rem"
+          },
+          "fontFamily": {
+            "body-md": ["Inter"],
+            "token-hero-mobile": ["JetBrains Mono"],
+            "token-hero": ["JetBrains Mono"],
+            "body-sm": ["Inter"],
+            "label-mono": ["JetBrains Mono"],
+            "headline-xl": ["Inter"],
+            "token-sub": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-xl-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}],
+            "token-hero-mobile": ["26px", {"lineHeight": "32px", "letterSpacing": "0.04em", "fontWeight": "700"}],
+            "token-hero": ["34px", {"lineHeight": "40px", "letterSpacing": "0.06em", "fontWeight": "700"}],
+            "body-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+            "label-mono": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500"}],
+            "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+            "token-sub": ["16px", {"lineHeight": "22px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "headline-md": ["20px", {"lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+            "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "400"}],
+            "headline-lg-mobile": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+            "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+            "headline-xl-mobile": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    @keyframes watermark-shift {
+      0% { transform: translateX(-10%) rotate(-12deg); }
+      50% { transform: translateX(10%) rotate(-12deg); }
+      100% { transform: translateX(-10%) rotate(-12deg); }
+    }
+    .animate-watermark {
+      animation: watermark-shift 12s ease-in-out infinite;
+    }
+    @keyframes sweep {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(1000%); }
+    }
+    .animate-radar-sweep {
+      animation: sweep 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-canvas text-on-surface antialiased min-h-full flex flex-col font-body-md text-body-md select-none pb-28">
+<!-- TOP APP BAR -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin md:px-margin-desktop h-14 bg-mec-navy dark:bg-surface-admin-desk border-b border-outline/20 shadow-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-electric-cyan font-bold" data-icon="bolt">bolt</span>
+<span class="text-headline-md font-headline-md font-bold tracking-tight text-surface uppercase">MEC PreFetch</span>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-space-2xs px-space-xs py-space-2xs bg-mec-navy-tint rounded border border-electric-cyan/30 text-electric-cyan text-label-mono font-label-mono">
+<span class="w-2 h-2 rounded-full bg-emerald-telemetry animate-ping"></span>
+<span class="text-[10px] tracking-widest font-bold">LIVE WS</span>
+</div>
+<button aria-label="Cart" class="text-surface-tint hover:text-electric-cyan transition-colors active:scale-95 duration-100 flex items-center">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</button>
+</div>
+</header>
+<!-- MAIN CANVAS CONTAINER -->
+<main class="w-full max-w-md mx-auto pt-16 px-margin flex flex-col gap-space-lg">
+<!-- TAB / WORKFLOW TOGGLE (Demonstrating Dual System States in Single View) -->
+<div class="mt-space-sm bg-surface-container-high p-space-2xs rounded-lg flex border border-outline/20">
+<button class="flex-1 py-space-xs text-center font-label-mono text-label-mono font-semibold rounded bg-mec-navy text-electric-cyan shadow-sm transition-all duration-150" id="btn-tab-checkout" onclick="switchView('checkout')">
+        1. Checkout &amp; Lock
+      </button>
+<button class="flex-1 py-space-xs text-center font-label-mono text-label-mono font-medium text-surface-tint hover:text-mec-navy transition-all duration-150 flex items-center justify-center gap-1" id="btn-tab-token" onclick="switchView('token')">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-telemetry"></span>
+        2. Verified Token
+      </button>
+</div>
+<!-- ========================================== -->
+<!-- VIEW 1: ACTIVE CHECKOUT & ATOMIC LOCK -->
+<!-- ========================================== -->
+<section class="flex flex-col gap-space-lg" id="view-checkout">
+<!-- Atomic Stock Lock Banner -->
+<div class="bg-primary-container text-surface rounded-lg p-space-md border border-electric-cyan/30 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-electric-cyan/10 to-transparent pointer-events-none"></div>
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-terminal-amber text-[20px]" data-icon="lock_clock">lock_clock</span>
+<span class="font-label-mono text-label-mono font-bold text-electric-cyan uppercase tracking-wider">Atomic Stock Lock</span>
+</div>
+<div class="px-space-xs py-space-2xs bg-terminal-amber/20 border border-terminal-amber rounded text-terminal-amber font-label-mono text-label-mono font-bold tracking-wider">
+<span id="countdown">04:32</span>
+</div>
+</div>
+<p class="mt-space-xs text-body-sm font-body-sm text-surface-tint leading-relaxed">
+          Inventory reserved in Marian Firestore cluster. Lock guarantees items will not be allocated to queue during the rush break.
+        </p>
+</div>
+<!-- Itemized Order Manifest Card -->
+<div class="bg-surface-container-lowest border border-mec-navy/10 rounded-lg p-space-md shadow-sm">
+<div class="flex items-center justify-between pb-space-sm border-b border-mec-navy/10">
+<h2 class="font-headline-md text-headline-md font-bold text-mec-navy">Order Breakdown</h2>
+<span class="font-label-mono text-label-mono text-surface-tint">3 Line Items</span>
+</div>
+<div class="divide-y divide-mec-navy/5">
+<!-- Item 1 -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-body-md font-semibold text-mec-navy">S4 CSE Lab Coat</span>
+<span class="font-label-mono text-label-mono text-surface-tint text-xs">SPEC: SIZE L • STARCHED</span>
+</div>
+<div class="text-right">
+<span class="font-label-mono text-body-md font-bold text-mec-navy">₹420</span>
+<div class="text-emerald-telemetry font-label-mono text-[10px] tracking-tight">ALLOCATED</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-body-md font-semibold text-mec-navy">Hardbound Record (200-pg)</span>
+<span class="font-label-mono text-label-mono text-surface-tint text-xs">MEC SEAL EMBOSSED • RULED</span>
+</div>
+<div class="text-right">
+<span class="font-label-mono text-body-md font-bold text-mec-navy">₹95</span>
+<div class="text-emerald-telemetry font-label-mono text-[10px] tracking-tight">ALLOCATED</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="py-space-sm flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-body-md font-semibold text-mec-navy">CST204 DBMS Guide</span>
+<span class="font-label-mono text-label-mono text-surface-tint text-xs">KTU 2024 ED • PROF NOTES</span>
+</div>
+<div class="text-right">
+<span class="font-label-mono text-body-md font-bold text-mec-navy">₹550</span>
+<div class="text-emerald-telemetry font-label-mono text-[10px] tracking-tight">ALLOCATED</div>
+</div>
+</div>
+</div>
+<!-- Tally Ledger -->
+<div class="pt-space-md mt-space-sm border-t border-mec-navy/10 space-y-space-xs font-label-mono text-label-mono">
+<div class="flex justify-between text-surface-tint">
+<span>Subtotal</span>
+<span>₹1,065.00</span>
+</div>
+<div class="flex justify-between text-emerald-telemetry font-medium">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="verified">verified</span>
+              Campus Engineering Subsidy
+            </span>
+<span>-₹65.00</span>
+</div>
+<div class="pt-space-xs border-t border-dashed border-mec-navy/20 flex justify-between items-baseline font-bold text-mec-navy text-token-sub font-token-sub">
+<span class="text-headline-md font-headline-md">Final Total</span>
+<span class="text-token-hero-mobile font-token-hero-mobile text-mec-navy">₹1,000</span>
+</div>
+</div>
+</div>
+<!-- Frictionless Payment Flow -->
+<div class="bg-surface-container-lowest border border-mec-navy/10 rounded-lg p-space-md shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<span class="text-label-mono font-label-mono uppercase text-xs tracking-wider text-surface-tint">Instant UPI Settlement</span>
+<span class="px-space-xs py-space-2xs bg-emerald-telemetry/10 text-emerald-telemetry border border-emerald-telemetry/30 text-[10px] font-label-mono rounded">ZERO CONCURRENCY LATENCY</span>
+</div>
+<!-- Primary UPI Intent Trigger -->
+<button class="w-full h-14 bg-upi-brand-indigo hover:bg-upi-brand-indigo/90 text-on-primary font-body-md font-bold rounded-lg flex items-center justify-center gap-space-sm shadow-md active:scale-95 transition-transform duration-100 ease-out" onclick="simulateSuccessfulPayment()">
+<span class="material-symbols-outlined text-electric-cyan" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span>Pay ₹1,000 via Google Pay UPI</span>
+<span class="material-symbols-outlined text-sm opacity-80" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<!-- Dynamic QR Option Fallback Accordion -->
+<div class="p-space-sm bg-surface-container-low rounded border border-mec-navy/10 flex flex-col items-center text-center">
+<span class="font-label-mono text-[11px] text-surface-tint mb-space-xs">Or scan direct dynamic desk payload</span>
+<!-- Mock Crisp QR -->
+<div class="w-36 h-36 bg-surface-container-lowest p-2 border border-mec-navy/20 rounded flex items-center justify-center relative">
+<div class="w-32 h-32 bg-mec-navy flex flex-col items-center justify-center p-1 relative overflow-hidden rounded-sm">
+<!-- Geometric QR simulation -->
+<div class="grid grid-cols-5 gap-1 w-full h-full p-1 opacity-90">
+<div class="bg-electric-cyan rounded-xs"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan col-span-2"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-electric-cyan col-span-3"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan col-span-2"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+</div>
+<div class="absolute inset-0 border-2 border-electric-cyan/40 pointer-events-none"></div>
+</div>
+</div>
+<span class="mt-space-xs font-label-mono text-[10px] text-surface-tint">UPI ID: mec.store.desk01@sbi</span>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- VIEW 2: VERIFIED DIGITAL PICKUP TOKEN CARD -->
+<!-- ========================================== -->
+<section class="hidden flex flex-col gap-space-lg" id="view-token">
+<!-- Anti-Counterfeit High Concurrency Pass -->
+<div class="relative bg-surface-admin-desk text-surface rounded-xl p-space-lg border-2 border-dashed border-electric-cyan shadow-xl overflow-hidden">
+<!-- Live Watermark Security Strip -->
+<div class="absolute inset-0 pointer-events-none opacity-5 flex items-center justify-center">
+<div class="font-token-hero text-headline-xl text-surface whitespace-nowrap animate-watermark uppercase font-black">
+            MARIAN CAMPUS VALIDATED SECURE PREFETCH MARIAN CAMPUS
+          </div>
+</div>
+<!-- Scanning Beam Simulation Line -->
+<div class="absolute left-0 right-0 h-[2px] bg-electric-cyan/60 shadow-[0_0_8px_#00E5FF] animate-radar-sweep pointer-events-none"></div>
+<!-- Token Header -->
+<div class="flex items-center justify-between pb-space-sm border-b border-electric-cyan/20">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-electric-cyan" data-icon="badge">badge</span>
+<span class="font-label-mono text-label-mono text-electric-cyan tracking-wider font-semibold">DIGITAL ACCESS TOKEN</span>
+</div>
+<div class="flex items-center gap-1 font-label-mono text-[10px] text-surface-tint">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-telemetry"></span>
+<span>SEC-LAYER: ACTIVE</span>
+</div>
+</div>
+<!-- Hero Token Display -->
+<div class="my-space-md text-center py-space-sm bg-mec-navy-tint/50 rounded-lg border border-electric-cyan/20 relative">
+<span class="font-label-mono text-[11px] text-surface-tint uppercase tracking-widest block mb-1">Authorization Code</span>
+<span class="font-token-hero-mobile text-token-hero-mobile text-electric-cyan tracking-wider font-bold block select-all">
+            #FETCH-8802
+          </span>
+<div class="mt-space-xs inline-flex items-center gap-space-xs px-space-xs py-space-2xs bg-surface-admin-desk rounded text-[10px] font-label-mono text-surface-tint">
+<span class="material-symbols-outlined text-[12px] text-emerald-telemetry" data-icon="schedule">schedule</span>
+<span id="timestamp-tag">TS: 11:42:08 IST • WS-SYNC</span>
+</div>
+</div>
+<!-- High-Def Counter Scanner Code -->
+<div class="flex flex-col items-center justify-center my-space-xs">
+<div class="p-3 bg-surface rounded-lg border border-electric-cyan shadow-inner">
+<div class="w-40 h-40 bg-mec-navy flex flex-col items-center justify-center relative p-1.5">
+<!-- Grid simulation of deterministic QR token payload -->
+<div class="grid grid-cols-6 gap-1 w-full h-full">
+<div class="bg-electric-cyan col-span-2 row-span-2"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan col-span-2"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas col-span-2"></div>
+<div class="bg-electric-cyan col-span-2"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan col-span-2 row-span-2"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+<div class="bg-surface-canvas"></div>
+<div class="bg-electric-cyan"></div>
+</div>
+<div class="absolute center flex items-center justify-center bg-mec-navy border border-electric-cyan p-1 rounded">
+<span class="material-symbols-outlined text-electric-cyan text-sm" data-icon="qr_code_scanner">qr_code_scanner</span>
+</div>
+</div>
+</div>
+<span class="mt-space-xs font-label-mono text-[10px] text-electric-cyan tracking-wider">MARIAN COUNTER LASER OPTICAL COMPATIBLE</span>
+</div>
+<!-- Live Status Stepper -->
+<div class="mt-space-md pt-space-md border-t border-electric-cyan/20">
+<span class="font-label-mono text-[11px] text-surface-tint uppercase block mb-space-sm font-semibold">Fulfillment Lifecycle</span>
+<div class="flex items-center justify-between relative">
+<!-- Connecting progress bar track -->
+<div class="absolute top-1/2 left-4 right-4 h-0.5 bg-mec-navy-tint -translate-y-1/2 z-0"></div>
+<div class="absolute top-1/2 left-4 w-1/2 h-0.5 bg-emerald-telemetry -translate-y-1/2 z-0"></div>
+<!-- Step 1: PAID -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-emerald-telemetry text-mec-navy flex items-center justify-center font-bold text-xs shadow-md">
+<span class="material-symbols-outlined text-base" data-icon="check">check</span>
+</div>
+<span class="mt-1 font-label-mono text-[10px] font-bold text-emerald-telemetry">PAID</span>
+</div>
+<!-- Step 2: READY FOR PICKUP -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-admin-desk border-2 border-electric-cyan text-electric-cyan flex items-center justify-center font-bold text-xs shadow-[0_0_12px_#00E5FF]">
+<span class="w-2.5 h-2.5 rounded-full bg-electric-cyan animate-ping"></span>
+</div>
+<span class="mt-1 font-label-mono text-[10px] font-bold text-electric-cyan whitespace-nowrap">READY PICKUP</span>
+</div>
+<!-- Step 3: DISPENSED -->
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-mec-navy-tint text-surface-tint border border-outline/30 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-base" data-icon="archive">archive</span>
+</div>
+<span class="mt-1 font-label-mono text-[10px] text-surface-tint">DISPENSED</span>
+</div>
+</div>
+<!-- Pulsing Beacon Message -->
+<div class="mt-space-md p-space-sm bg-electric-cyan/10 border border-electric-cyan/40 rounded flex items-center gap-space-sm">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-electric-cyan opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-electric-cyan"></span>
+</span>
+<span class="font-label-mono text-body-sm text-surface font-medium">Waiting for Counter Desk Scan</span>
+</div>
+</div>
+<!-- Clearance Instructions -->
+<div class="mt-space-md pt-space-sm border-t border-electric-cyan/20 flex items-start gap-space-sm text-surface-tint font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-electric-cyan text-lg mt-0.5" data-icon="info">info</span>
+<p class="leading-snug">
+            Flash this token at <strong class="text-surface font-semibold">Marian Co-op Store Counter 02</strong> for instantaneous &lt;30-second handover. Pre-bagged and ready.
+          </p>
+</div>
+</div>
+<!-- Actionable Token Utilities -->
+<div class="flex gap-space-sm">
+<button class="flex-1 py-space-sm bg-surface-container-high hover:bg-surface-container-highest border border-outline/20 rounded-lg text-mec-navy font-label-mono text-body-sm font-semibold flex items-center justify-center gap-space-xs active:scale-95 transition-transform" onclick="navigator.clipboard?.writeText('#FETCH-8802')">
+<span class="material-symbols-outlined text-base" data-icon="content_copy">content_copy</span>
+<span>Copy Token</span>
+</button>
+<button class="flex-1 py-space-sm bg-surface-container-high hover:bg-surface-container-highest border border-outline/20 rounded-lg text-mec-navy font-label-mono text-body-sm font-semibold flex items-center justify-center gap-space-xs active:scale-95 transition-transform" onclick="alert('Wallet Pass generated for Apple Wallet &amp; Google Wallet!')">
+<span class="material-symbols-outlined text-base" data-icon="add_to_home_screen">add_to_home_screen</span>
+<span>Save Pass</span>
+</button>
+</div>
+</section>
+<!-- Telemetry System Footer Note -->
+<footer class="w-full py-space-md flex flex-col justify-between items-center gap-space-xs text-center border-t border-outline/10 text-surface-tint font-label-mono text-label-mono">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-telemetry"></span>
+<span>MEC CORE CLUSTER 04 • 14ms LATENCY</span>
+</div>
+<p class="text-[11px]">© Marian Engineering College Campus Store. Powered by PreFetch High-Concurrency Architecture.</p>
+</footer>
+</main>
+<!-- ========================================== -->
+<!-- SHARED BOTTOM NAVIGATION BAR               -->
+<!-- ========================================== -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-gutter bg-surface-canvas dark:bg-surface-admin-desk border-t border-mec-navy/10 shadow-md">
+<!-- Tab 1: Catalog -->
+<a class="flex flex-col items-center justify-center text-outline dark:text-on-primary-container hover:text-mec-navy dark:hover:text-electric-cyan transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="storefront">storefront</span>
+<span class="text-label-mono font-label-mono text-[10px] mt-0.5">Catalog</span>
+</a>
+<!-- Tab 2: Bundles -->
+<a class="flex flex-col items-center justify-center text-outline dark:text-on-primary-container hover:text-mec-navy dark:hover:text-electric-cyan transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="package_2">package_2</span>
+<span class="text-label-mono font-label-mono text-[10px] mt-0.5">Bundles</span>
+</a>
+<!-- Tab 3: My Fetch (ACTIVE) -->
+<a class="flex flex-col items-center justify-center text-mec-navy dark:text-electric-cyan font-semibold hover:text-mec-navy dark:hover:text-electric-cyan transition-colors duration-150 active:scale-95" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-[22px]" data-icon="qr_code_scanner">qr_code_scanner</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-emerald-telemetry rounded-full"></span>
+</div>
+<span class="text-label-mono font-label-mono text-[10px] mt-0.5">My Fetch</span>
+</a>
+<!-- Tab 4: Counter Desk -->
+<a class="flex flex-col items-center justify-center text-outline dark:text-on-primary-container hover:text-mec-navy dark:hover:text-electric-cyan transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="terminal">terminal</span>
+<span class="text-label-mono font-label-mono text-[10px] mt-0.5">Counter Desk</span>
+</a>
+</nav>
+<!-- Interactive JavaScript Controller -->
+<script>
+    // Tab switching between Lock stage & Issued Token
+    function switchView(viewState) {
+      const vCheckout = document.getElementById('view-checkout');
+      const vToken = document.getElementById('view-token');
+      const bCheckout = document.getElementById('btn-tab-checkout');
+      const bToken = document.getElementById('btn-tab-token');
+
+      if (viewState === 'checkout') {
+        vCheckout.classList.remove('hidden');
+        vToken.classList.add('hidden');
+        
+        bCheckout.className = 'flex-1 py-space-xs text-center font-label-mono text-label-mono font-semibold rounded bg-mec-navy text-electric-cyan shadow-sm transition-all duration-150';
+        bToken.className = 'flex-1 py-space-xs text-center font-label-mono text-label-mono font-medium text-surface-tint hover:text-mec-navy transition-all duration-150 flex items-center justify-center gap-1';
+      } else {
+        vCheckout.classList.add('hidden');
+        vToken.classList.remove('hidden');
+
+        bToken.className = 'flex-1 py-space-xs text-center font-label-mono text-label-mono font-semibold rounded bg-mec-navy text-electric-cyan shadow-sm transition-all duration-150 flex items-center justify-center gap-1';
+        bCheckout.className = 'flex-1 py-space-xs text-center font-label-mono text-label-mono font-medium text-surface-tint hover:text-mec-navy transition-all duration-150';
+      }
+    }
+
+    // Trigger instant transition upon simulated payment
+    function simulateSuccessfulPayment() {
+      // Vibrate if supported
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]);
+      }
+      switchView('token');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Stock Lock Countdown Timer logic
+    let remainingSeconds = 4 * 60 + 32;
+    const timerElem = document.getElementById('countdown');
+
+    setInterval(() => {
+      if (remainingSeconds > 0) {
+        remainingSeconds--;
+        const mins = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        timerElem.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      } else {
+        timerElem.textContent = 'EXPIRED';
+        timerElem.classList.remove('text-terminal-amber');
+        timerElem.classList.add('text-stock-critical');
+      }
+    }, 1000);
+
+    // Live Timestamp Updater
+    const timestampTag = document.getElementById('timestamp-tag');
+    function updateTimestamp() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-IN', { hour12: false });
+      timestampTag.textContent = `TS: ${timeStr} IST • WS-SYNC`;
+    }
+    setInterval(updateTimestamp, 1000);
+    updateTimestamp();
+  </script>
+</body></html>
