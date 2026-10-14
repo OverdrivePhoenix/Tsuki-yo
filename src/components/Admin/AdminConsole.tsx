@@ -5,15 +5,18 @@ import { ScannerModal } from './ScannerModal';
 export const AdminConsole: React.FC = () => {
   const {
     orders,
+    products,
     selectedAdminOrder,
     setSelectedAdminOrder,
     toggleAdminCheckItem,
     markOrderCollected,
+    toggleKillSwitch,
+    updateInventoryItem,
     setActiveView,
   } = usePreFetch();
 
   const [searchToken, setSearchToken] = useState<string>('#FETCH-8802');
-  const [activeTab, setActiveTab] = useState<'manifest' | 'scan' | 'velocity' | 'config'>('manifest');
+  const [activeTab, setActiveTab] = useState<'manifest' | 'inventory' | 'velocity' | 'config'>('manifest');
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [isInvalidatedFeedback, setIsInvalidatedFeedback] = useState<boolean>(false);
   const [velocityAlertDismissed, setVelocityAlertDismissed] = useState<boolean>(false);
@@ -46,6 +49,7 @@ export const AdminConsole: React.FC = () => {
     );
     if (found) {
       setSelectedAdminOrder(found);
+      setActiveTab('manifest');
     } else {
       alert(`Token ${query} not found in live queue!`);
     }
@@ -56,13 +60,12 @@ export const AdminConsole: React.FC = () => {
     setIsInvalidatedFeedback(true);
     markOrderCollected(selectedAdminOrder.id);
 
-    // Audio tone simulation using Web Audio API if supported
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
       gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
       osc.connect(gain);
@@ -85,6 +88,7 @@ export const AdminConsole: React.FC = () => {
     const found = orders.find((o) => o.id === token);
     if (found) {
       setSelectedAdminOrder(found);
+      setActiveTab('manifest');
     }
   };
 
@@ -93,7 +97,7 @@ export const AdminConsole: React.FC = () => {
     setTimeout(() => setReorderSuccessToast(null), 4000);
   };
 
-  const pendingOrders = orders.filter((o) => o.status === 'PREPARING' || o.status === 'READY FOR PICKUP');
+  const pendingOrders = orders.filter((o) => o.status === 'PREPARING' || o.status === 'READY FOR PICKUP' || o.status === 'PAID');
   const completedCount = orders.filter((o) => o.status === 'COLLECTED').length + 382;
 
   const currentOrder = selectedAdminOrder || orders[0];
@@ -201,6 +205,18 @@ export const AdminConsole: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setActiveTab('inventory')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs transition-all text-left ${
+                  activeTab === 'inventory'
+                    ? 'bg-[#1E2E45] text-[#00E5FF] border-l-2 border-[#00E5FF]'
+                    : 'text-gray-400 hover:text-white hover:bg-[#1E2E45]/50'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">inventory_2</span>
+                <span>Inventory & Kill-Switch</span>
+              </button>
+
+              <button
                 onClick={() => setIsScannerOpen(true)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs text-gray-400 hover:text-[#00E5FF] hover:bg-[#1E2E45]/50 transition-all text-left"
               >
@@ -218,18 +234,6 @@ export const AdminConsole: React.FC = () => {
               >
                 <span className="material-symbols-outlined text-lg">trending_up</span>
                 <span>Stock Velocity</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('config')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs transition-all text-left ${
-                  activeTab === 'config'
-                    ? 'bg-[#1E2E45] text-[#00E5FF] border-l-2 border-[#00E5FF]'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1E2E45]/50'
-                }`}
-              >
-                <span className="material-symbols-outlined text-lg">tune</span>
-                <span>Station Config</span>
               </button>
             </nav>
           </div>
@@ -296,280 +300,445 @@ export const AdminConsole: React.FC = () => {
             </form>
           </section>
 
-          {/* DUAL OPERATIONAL LANES (Split Screen Layout) */}
-          <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-            
-            {/* LANE 1: LIVE INCOMING FULFILLMENT QUEUE (7 Cols) */}
-            <section className="col-span-12 lg:col-span-7 border-r border-[#00E5FF]/20 flex flex-col overflow-hidden bg-[#060D17]">
+          {/* TAB 1: LIVE MANIFEST VIEW */}
+          {activeTab === 'manifest' && (
+            <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
               
-              {/* Queue Header */}
-              <div className="px-4 py-2 bg-[#1E2E45]/30 border-b border-[#00E5FF]/15 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-white tracking-wide uppercase">
-                    LIVE PRIORITY QUEUE
-                  </span>
-                  <span className="px-2 py-0.5 bg-[#FFB300]/15 text-[#FFB300] border border-[#FFB300]/40 rounded-full font-mono text-[10px]">
-                    {pendingOrders.length} PENDING
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 font-mono text-xs text-gray-400">
-                  <span>SORT:</span>
-                  <span className="text-[#00E5FF] font-semibold cursor-pointer">
-                    INTER-BREAK PRIORITY ▾
-                  </span>
-                </div>
-              </div>
-
-              {/* Queue Items List */}
-              <div className="flex-1 overflow-y-auto divide-y divide-[#00E5FF]/10">
-                {orders.map((order) => {
-                  const isSelected = currentOrder?.id === order.id;
-                  const isCollected = order.status === 'COLLECTED';
-                  const isReady = order.status === 'READY FOR PICKUP';
-
-                  return (
-                    <div
-                      key={order.id}
-                      onClick={() => setSelectedAdminOrder(order)}
-                      className={`p-3 transition-colors cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-[#1E2E45]/60 border-l-4 border-[#00E5FF]'
-                          : isCollected
-                          ? 'opacity-60 hover:opacity-100 border-l-4 border-gray-600'
-                          : isReady
-                          ? 'border-l-4 border-[#00E676] hover:bg-[#1E2E45]/40'
-                          : 'border-l-4 border-[#FFB300] hover:bg-[#1E2E45]/30'
-                      }`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono text-xs font-bold ${
-                              isSelected ? 'text-[#00E5FF]' : isCollected ? 'line-through text-gray-400' : 'text-white'
-                            }`}
-                          >
-                            {order.id}
-                          </span>
-
-                          <span
-                            className={`px-2 py-0.5 rounded font-mono text-[10px] font-semibold flex items-center gap-1 ${
-                              isCollected
-                                ? 'bg-[#0B192C] text-gray-400 border border-gray-600'
-                                : isReady
-                                ? 'bg-[#00E676]/15 text-[#00E676] border border-[#00E676]/40'
-                                : 'bg-[#FFB300]/15 text-[#FFB300] border border-[#FFB300]/40'
-                            }`}
-                          >
-                            {!isCollected && (
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isReady ? 'bg-[#00E676] status-pulse' : 'bg-[#FFB300]'
-                                }`}
-                              ></span>
-                            )}
-                            {order.status}
-                          </span>
-
-                          <span className="font-mono text-[10px] text-gray-400">{order.createdAt}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-white text-xs">
-                          <span className="font-bold">{order.studentName}</span>
-                          <span className="font-mono text-[10px] text-gray-400">ROLL: {order.rollNumber}</span>
-                          <span className="text-gray-400">• {order.branch}</span>
-                        </div>
-
-                        <div className="font-mono text-[10px] text-gray-400">
-                          {order.items.length} items • {order.paymentRoute}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {isCollected ? (
-                          <div className="flex items-center gap-1 font-mono text-[10px] text-[#00E676]">
-                            <span className="material-symbols-outlined text-sm">check</span>
-                            <span>DISPATCHED</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedAdminOrder(order);
-                            }}
-                            className={`px-2.5 py-1 rounded font-mono text-[10px] font-bold transition-colors ${
-                              isSelected
-                                ? 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/50'
-                                : 'bg-[#1E2E45] text-gray-400 hover:text-[#00E5FF] border border-white/10'
-                            }`}
-                          >
-                            {isSelected ? 'ACTIVE' : 'SELECT'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* LANE 2: ORDER TICKET INSPECTOR & PACKING CHECKLIST (5 Cols) */}
-            <section className="col-span-12 lg:col-span-5 flex flex-col overflow-hidden bg-[#0B192C]/20">
-              
-              {/* Inspector Header */}
-              <div className="px-4 py-2 bg-[#1E2E45]/40 border-b border-[#00E5FF]/20 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[#00E5FF] text-base">assignment</span>
-                  <span className="font-mono text-xs font-bold text-[#00E5FF] uppercase">
-                    ACTIVE PACKET INSPECTION
-                  </span>
-                </div>
-                <span className="px-2 py-0.5 bg-[#00E676]/15 text-[#00E676] border border-[#00E676]/30 font-mono text-[10px] font-bold">
-                  VERIFIED {checkedItemsCount}/{totalItemsCount}
-                </span>
-              </div>
-
-              {/* Dynamic Inspection Content */}
-              {currentOrder ? (
-                <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                  
-                  {/* Token Encrypted Banner Box */}
-                  <div className="p-3 bg-[#060D17] border-2 border-dashed border-[#00E5FF]/40 rounded-lg flex items-center justify-between">
-                    <div>
-                      <div className="font-mono text-[10px] text-gray-400 uppercase">
-                        SECURITY VERIFICATION TOKEN
-                      </div>
-                      <div className="font-mono text-xl text-[#00E5FF] tracking-wider font-bold">
-                        {currentOrder.id}
-                      </div>
-                      <div className="font-mono text-[10px] text-[#00E676] mt-0.5">
-                        ● VERIFIED CRYPTOGRAPHIC MATCH ({currentOrder.verificationHash})
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-[#0e1c2f] border border-[#00E5FF]/30 rounded flex flex-col items-center">
-                      <span className="material-symbols-outlined text-2xl text-[#00E5FF]">qr_code_2</span>
-                      <span className="font-mono text-[9px] text-gray-400">COUNTER CAM</span>
-                    </div>
+              {/* LANE 1: LIVE INCOMING FULFILLMENT QUEUE (7 Cols) */}
+              <section className="col-span-12 lg:col-span-7 border-r border-[#00E5FF]/20 flex flex-col overflow-hidden bg-[#060D17]">
+                
+                {/* Queue Header */}
+                <div className="px-4 py-2 bg-[#1E2E45]/30 border-b border-[#00E5FF]/15 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-white tracking-wide uppercase">
+                      LIVE PRIORITY QUEUE
+                    </span>
+                    <span className="px-2 py-0.5 bg-[#FFB300]/15 text-[#FFB300] border border-[#FFB300]/40 rounded-full font-mono text-[10px]">
+                      {pendingOrders.length} PENDING
+                    </span>
                   </div>
-
-                  {/* Student Metadata Row */}
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-[#0e1c2f]/80 border border-white/10 rounded text-xs">
-                    <div>
-                      <span className="font-mono text-[10px] text-gray-400 block">STUDENT BENEFICIARY</span>
-                      <span className="font-bold text-white">{currentOrder.studentName}</span>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[10px] text-gray-400 block">ROLL NUMBER / DEPT</span>
-                      <span className="font-mono text-xs text-[#00E5FF]">
-                        {currentOrder.rollNumber} ({currentOrder.branch})
-                      </span>
-                    </div>
-                    <div className="col-span-2 pt-1 border-t border-white/10 flex justify-between">
-                      <span className="font-mono text-[10px] text-gray-400">
-                        PAYMENT ROUTE: <span className="text-[#5F259F] font-bold">{currentOrder.paymentRoute}</span>
-                      </span>
-                      <span className="font-mono text-[10px] text-[#00E676] font-bold">
-                        ₹{currentOrder.totalAmount}.00 PAID
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1 font-mono text-xs text-gray-400">
+                    <span>SORT:</span>
+                    <span className="text-[#00E5FF] font-semibold cursor-pointer">
+                      INTER-BREAK PRIORITY ▾
+                    </span>
                   </div>
+                </div>
 
-                  {/* Physical Verification Packing Checklist */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between pb-1 border-b border-white/10">
-                      <span className="font-mono text-[10px] text-gray-400 tracking-wide uppercase">
-                        PHYSICAL DISPATCH CHECKLIST (CLICK TO TICK)
-                      </span>
-                      <span className="font-mono text-[10px] text-[#00E5FF]">BIN LOCATIONS</span>
-                    </div>
+                {/* Queue Items List */}
+                <div className="flex-1 overflow-y-auto divide-y divide-[#00E5FF]/10">
+                  {orders.map((order) => {
+                    const isSelected = currentOrder?.id === order.id;
+                    const isCollected = order.status === 'COLLECTED';
+                    const isReady = order.status === 'READY FOR PICKUP' || order.status === 'PAID';
 
-                    {currentOrder.items.map((item, idx) => {
-                      const isChecked = item.checked;
-                      return (
-                        <label
-                          key={idx}
-                          className={`flex items-center justify-between p-2.5 rounded cursor-pointer transition-colors border ${
-                            isChecked
-                              ? 'bg-[#1E2E45]/40 border-[#00E676]/40'
-                              : 'bg-[#1E2E45] border-[#FFB300] shadow-[0_0_8px_rgba(255,179,0,0.15)]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleAdminCheckItem(currentOrder.id, idx)}
-                              className="w-4 h-4 rounded text-[#00E676] focus:ring-0 bg-[#0e1c2f] border-gray-500 cursor-pointer"
-                            />
-                            <div>
-                              <span
-                                className={`text-xs font-bold text-white ${
-                                  isChecked ? 'line-through opacity-80' : ''
-                                }`}
-                              >
-                                {item.name} {item.spec && `— ${item.spec}`}
-                              </span>
-                              <span className="block font-mono text-[10px] text-gray-400">
-                                SKU: {item.sku} • Qty: {item.quantity}
-                              </span>
-                            </div>
-                          </div>
-                          <span
-                            className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
-                              isChecked
-                                ? 'bg-[#0e1c2f] text-[#00E5FF] border-[#00E5FF]/30'
-                                : 'bg-[#0e1c2f] text-[#FFB300] border-[#FFB300]/40'
-                            }`}
-                          >
-                            {item.rackLocation}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  {/* Instant Dispatch Action */}
-                  <div className="mt-auto pt-3 flex flex-col gap-2">
-                    {currentOrder.status !== 'COLLECTED' ? (
-                      <button
-                        onClick={handleFastVerify}
-                        className={`w-full py-2.5 font-bold rounded flex items-center justify-center gap-2 transition-all tracking-tight uppercase font-mono text-xs ${
-                          isInvalidatedFeedback
-                            ? 'bg-[#00E5FF] text-[#0B192C]'
-                            : 'bg-[#00E676] text-[#0B192C] hover:bg-[#00E676]/90 shadow-[0_0_20px_rgba(0,230,118,0.3)]'
+                    return (
+                      <div
+                        key={order.id}
+                        onClick={() => setSelectedAdminOrder(order)}
+                        className={`p-3 transition-colors cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#1E2E45]/60 border-l-4 border-[#00E5FF]'
+                            : isCollected
+                            ? 'opacity-60 hover:opacity-100 border-l-4 border-gray-600'
+                            : isReady
+                            ? 'border-l-4 border-[#00E676] hover:bg-[#1E2E45]/40'
+                            : 'border-l-4 border-[#FFB300] hover:bg-[#1E2E45]/30'
                         }`}
                       >
-                        <span className="material-symbols-outlined text-lg">
-                          {isInvalidatedFeedback ? 'verified' : 'check_circle'}
-                        </span>
-                        <span>
-                          {isInvalidatedFeedback
-                            ? 'TOKEN INVALIDATED • PACKET CLEARED'
-                            : 'Mark Order Handed Over & Invalidate Token'}
-                        </span>
-                      </button>
-                    ) : (
-                      <div className="w-full py-2 bg-[#0e1c2f] border border-[#00E676]/50 text-[#00E676] rounded font-mono text-xs font-bold text-center flex items-center justify-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm">verified</span>
-                        <span>ORDER ALREADY COLLECTED & TOKEN PERMANENTLY INVALIDATED</span>
-                      </div>
-                    )}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`font-mono text-xs font-bold ${
+                                isSelected ? 'text-[#00E5FF]' : isCollected ? 'line-through text-gray-400' : 'text-white'
+                              }`}
+                            >
+                              {order.id}
+                            </span>
 
-                    <div className="flex items-center justify-between text-gray-400 font-mono text-[10px] px-1">
-                      <span>PRESS [F8] TO INSTANT PRINT RECEIPT</span>
-                      <span>ESC TO RELEASE HOLD</span>
+                            <span
+                              className={`px-2 py-0.5 rounded font-mono text-[10px] font-semibold flex items-center gap-1 ${
+                                isCollected
+                                  ? 'bg-[#0B192C] text-gray-400 border border-gray-600'
+                                  : isReady
+                                  ? 'bg-[#00E676]/15 text-[#00E676] border border-[#00E676]/40'
+                                  : 'bg-[#FFB300]/15 text-[#FFB300] border border-[#FFB300]/40'
+                              }`}
+                            >
+                              {!isCollected && (
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    isReady ? 'bg-[#00E676] status-pulse' : 'bg-[#FFB300]'
+                                  }`}
+                                ></span>
+                              )}
+                              {order.status}
+                            </span>
+
+                            <span className="font-mono text-[10px] text-gray-400">{order.createdAt}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-white text-xs">
+                            <span className="font-bold">{order.studentName}</span>
+                            <span className="font-mono text-[10px] text-gray-400">ROLL: {order.rollNumber}</span>
+                            <span className="text-gray-400">• {order.branch}</span>
+                          </div>
+
+                          <div className="font-mono text-[10px] text-gray-400">
+                            {order.items.length} items • {order.paymentRoute}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {isCollected ? (
+                            <div className="flex items-center gap-1 font-mono text-[10px] text-[#00E676]">
+                              <span className="material-symbols-outlined text-sm">check</span>
+                              <span>DISPATCHED</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAdminOrder(order);
+                              }}
+                              className={`px-2.5 py-1 rounded font-mono text-[10px] font-bold transition-colors ${
+                                isSelected
+                                  ? 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/50'
+                                  : 'bg-[#1E2E45] text-gray-400 hover:text-[#00E5FF] border border-white/10'
+                              }`}
+                            >
+                              {isSelected ? 'ACTIVE' : 'SELECT'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* LANE 2: ORDER TICKET INSPECTOR & PACKING CHECKLIST (5 Cols) */}
+              <section className="col-span-12 lg:col-span-5 flex flex-col overflow-hidden bg-[#0B192C]/20">
+                
+                {/* Inspector Header */}
+                <div className="px-4 py-2 bg-[#1E2E45]/40 border-b border-[#00E5FF]/20 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#00E5FF] text-base">assignment</span>
+                    <span className="font-mono text-xs font-bold text-[#00E5FF] uppercase">
+                      ACTIVE PACKET INSPECTION
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 bg-[#00E676]/15 text-[#00E676] border border-[#00E676]/30 font-mono text-[10px] font-bold">
+                    VERIFIED {checkedItemsCount}/{totalItemsCount}
+                  </span>
+                </div>
+
+                {/* Dynamic Inspection Content */}
+                {currentOrder ? (
+                  <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                    
+                    {/* Token Encrypted Banner Box */}
+                    <div className="p-3 bg-[#060D17] border-2 border-dashed border-[#00E5FF]/40 rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="font-mono text-[10px] text-gray-400 uppercase">
+                          SECURITY VERIFICATION TOKEN
+                        </div>
+                        <div className="font-mono text-xl text-[#00E5FF] tracking-wider font-bold">
+                          {currentOrder.id}
+                        </div>
+                        <div className="font-mono text-[10px] text-[#00E676] mt-0.5">
+                          ● VERIFIED CRYPTOGRAPHIC MATCH ({currentOrder.verificationHash})
+                        </div>
+                      </div>
+
+                      <div className="p-2 bg-[#0e1c2f] border border-[#00E5FF]/30 rounded flex flex-col items-center">
+                        <span className="material-symbols-outlined text-2xl text-[#00E5FF]">qr_code_2</span>
+                        <span className="font-mono text-[9px] text-gray-400">COUNTER CAM</span>
+                      </div>
                     </div>
+
+                    {/* Student Metadata Row */}
+                    <div className="grid grid-cols-2 gap-2 p-3 bg-[#0e1c2f]/80 border border-white/10 rounded text-xs">
+                      <div>
+                        <span className="font-mono text-[10px] text-gray-400 block">STUDENT BENEFICIARY</span>
+                        <span className="font-bold text-white">{currentOrder.studentName}</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] text-gray-400 block">ROLL NUMBER / DEPT</span>
+                        <span className="font-mono text-xs text-[#00E5FF]">
+                          {currentOrder.rollNumber} ({currentOrder.branch})
+                        </span>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-white/10 flex justify-between">
+                        <span className="font-mono text-[10px] text-gray-400">
+                          PAYMENT ROUTE: <span className="text-[#5F259F] font-bold">{currentOrder.paymentRoute}</span>
+                        </span>
+                        <span className="font-mono text-[10px] text-[#00E676] font-bold">
+                          ₹{currentOrder.totalAmount}.00 PAID
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Physical Verification Packing Checklist */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between pb-1 border-b border-white/10">
+                        <span className="font-mono text-[10px] text-gray-400 tracking-wide uppercase">
+                          PHYSICAL DISPATCH CHECKLIST (CLICK TO TICK)
+                        </span>
+                        <span className="font-mono text-[10px] text-[#00E5FF]">BIN LOCATIONS</span>
+                      </div>
+
+                      {currentOrder.items.map((item, idx) => {
+                        const isChecked = item.checked;
+                        return (
+                          <label
+                            key={idx}
+                            className={`flex items-center justify-between p-2.5 rounded cursor-pointer transition-colors border ${
+                              isChecked
+                                ? 'bg-[#1E2E45]/40 border-[#00E676]/40'
+                                : 'bg-[#1E2E45] border-[#FFB300] shadow-[0_0_8px_rgba(255,179,0,0.15)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleAdminCheckItem(currentOrder.id, idx)}
+                                className="w-4 h-4 rounded text-[#00E676] focus:ring-0 bg-[#0e1c2f] border-gray-500 cursor-pointer"
+                              />
+                              <div>
+                                <span
+                                  className={`text-xs font-bold text-white ${
+                                    isChecked ? 'line-through opacity-80' : ''
+                                  }`}
+                                >
+                                  {item.name} {item.spec && `— ${item.spec}`}
+                                </span>
+                                <span className="block font-mono text-[10px] text-gray-400">
+                                  SKU: {item.sku} • Qty: {item.quantity}
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
+                                isChecked
+                                  ? 'bg-[#0e1c2f] text-[#00E5FF] border-[#00E5FF]/30'
+                                  : 'bg-[#0e1c2f] text-[#FFB300] border-[#FFB300]/40'
+                              }`}
+                            >
+                              {item.rackLocation}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {/* Instant Dispatch Action */}
+                    <div className="mt-auto pt-3 flex flex-col gap-2">
+                      {currentOrder.status !== 'COLLECTED' ? (
+                        <button
+                          onClick={handleFastVerify}
+                          className={`w-full py-2.5 font-bold rounded flex items-center justify-center gap-2 transition-all tracking-tight uppercase font-mono text-xs ${
+                            isInvalidatedFeedback
+                              ? 'bg-[#00E5FF] text-[#0B192C]'
+                              : 'bg-[#00E676] text-[#0B192C] hover:bg-[#00E676]/90 shadow-[0_0_20px_rgba(0,230,118,0.3)]'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-lg">
+                            {isInvalidatedFeedback ? 'verified' : 'check_circle'}
+                          </span>
+                          <span>
+                            {isInvalidatedFeedback
+                              ? 'TOKEN INVALIDATED • PACKET CLEARED'
+                              : 'Mark Order Handed Over & Invalidate Token'}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="w-full py-2 bg-[#0e1c2f] border border-[#00E676]/50 text-[#00E676] rounded font-mono text-xs font-bold text-center flex items-center justify-center gap-1.5">
+                          <span className="material-symbols-outlined text-sm">verified</span>
+                          <span>ORDER ALREADY COLLECTED & TOKEN PERMANENTLY INVALIDATED</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-gray-400 font-mono text-[10px] px-1">
+                        <span>PRESS [F8] TO INSTANT PRINT RECEIPT</span>
+                        <span>ESC TO RELEASE HOLD</span>
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-500 font-mono text-xs">
+                    No order selected
+                  </div>
+                )}
+
+              </section>
+            </div>
+          )}
+
+          {/* TAB 2: INVENTORY CRUD & KILL-SWITCH PANEL */}
+          {activeTab === 'inventory' && (
+            <div className="flex-1 p-6 overflow-y-auto bg-[#060D17]">
+              <div className="max-w-6xl mx-auto space-y-4">
+                <div className="flex items-center justify-between border-b border-[#00E5FF]/20 pb-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#00E5FF]">inventory_2</span>
+                      <span>Live Inventory Management & Counter Kill-Switch</span>
+                    </h2>
+                    <p className="text-xs text-gray-400">
+                      Real-time updates sync directly to Firebase Cloud Firestore and active student devices.
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 font-mono text-xs rounded">
+                    FIRESTORE ATOMIC SYNC ACTIVE
+                  </span>
+                </div>
+
+                <div className="bg-[#0e1c2f] border border-[#00E5FF]/20 rounded-xl overflow-hidden shadow-lg">
+                  <table className="w-full text-left font-mono text-xs">
+                    <thead className="bg-[#1E2E45] text-[#00E5FF] uppercase border-b border-[#00E5FF]/20">
+                      <tr>
+                        <th className="p-3">Item Name & SKU</th>
+                        <th className="p-3">Category / Rack</th>
+                        <th className="p-3">Price (₹)</th>
+                        <th className="p-3">Live Stock Balance</th>
+                        <th className="p-3">Kill-Switch Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10 text-gray-300">
+                      {products.map((item) => {
+                        const isKilled = item.isActive === false;
+                        return (
+                          <tr key={item.id} className={`hover:bg-[#1E2E45]/40 transition-colors ${isKilled ? 'bg-[#FF3366]/5 opacity-70' : ''}`}>
+                            <td className="p-3">
+                              <div className="font-bold text-white">{item.name}</div>
+                              <div className="text-[10px] text-gray-400">{item.subtitle}</div>
+                            </td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 bg-[#1E2E45] rounded text-[10px] text-gray-300 block w-max">
+                                {item.category}
+                              </span>
+                              <span className="text-[10px] text-[#00E5FF] mt-1 block">{item.rackLocation}</span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-1 font-bold text-white">
+                                <span>₹</span>
+                                <input
+                                  type="number"
+                                  defaultValue={item.price}
+                                  onBlur={(e) => updateInventoryItem(item.id, item.stock, parseFloat(e.target.value) || item.price)}
+                                  className="w-16 bg-[#060D17] border border-white/20 rounded px-1.5 py-0.5 text-white"
+                                />
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateInventoryItem(item.id, Math.max(0, item.stock - 1))}
+                                  className="w-6 h-6 bg-[#1E2E45] text-white hover:bg-[#FF3366] rounded flex items-center justify-center font-bold"
+                                >
+                                  -
+                                </button>
+                                <span className={`font-bold text-sm min-w-8 text-center ${item.stock === 0 ? 'text-[#FF3366]' : item.stock <= 5 ? 'text-[#FFB300]' : 'text-[#00E676]'}`}>
+                                  {item.stock}
+                                </span>
+                                <button
+                                  onClick={() => updateInventoryItem(item.id, item.stock + 1)}
+                                  className="w-6 h-6 bg-[#1E2E45] text-white hover:bg-[#00E676] hover:text-[#0B192C] rounded flex items-center justify-center font-bold"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              {item.variants && item.variants.length > 0 && (
+                                <div className="mt-1 flex gap-1">
+                                  {item.variants.map((v) => (
+                                    <span key={v.id} className="text-[9px] bg-[#060D17] px-1 rounded text-gray-400">
+                                      {v.name}:{v.stock}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => toggleKillSwitch(item.id, isKilled ? true : false)}
+                                className={`px-3 py-1.5 rounded font-mono text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                                  isKilled
+                                    ? 'bg-[#FF3366] text-white hover:bg-[#FF3366]/80'
+                                    : 'bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/50 hover:bg-[#00E676] hover:text-[#0B192C]'
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-sm">
+                                  {isKilled ? 'toggle_off' : 'toggle_on'}
+                                </span>
+                                <span>{isKilled ? 'KILLED (OFF)' : 'ACTIVE (ON)'}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: STOCK VELOCITY VIEW */}
+          {activeTab === 'velocity' && (
+            <div className="flex-1 p-6 overflow-y-auto bg-[#060D17]">
+              <div className="max-w-4xl mx-auto space-y-4">
+                <div className="flex items-center justify-between border-b border-[#00E5FF]/20 pb-3">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#00E5FF]">trending_up</span>
+                    <span>Spring AI Real-Time Stock Velocity Forecast</span>
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-[#0e1c2f] border border-[#FF3366]/40 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white text-sm">Graph Records (200-pg)</span>
+                      <span className="px-2 py-0.5 bg-[#FF3366]/20 text-[#FF3366] rounded font-mono text-[10px] font-bold">
+                        HIGH BURN
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300">
+                      Velocity: <strong className="text-[#00E5FF]">48 units/24h</strong>. Estimated depletion in 4.2 hours.
+                    </p>
+                    <button
+                      onClick={handleTriggerReorder}
+                      className="mt-2 w-full py-2 bg-[#00E5FF] text-[#060D17] font-mono text-xs font-bold rounded flex items-center justify-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">local_shipping</span>
+                      <span>Dispatch Reorder PO to Marian Central</span>
+                    </button>
                   </div>
 
+                  <div className="p-4 bg-[#0e1c2f] border border-[#FFB300]/40 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white text-sm">CST202 Computer Organization</span>
+                      <span className="px-2 py-0.5 bg-[#FFB300]/20 text-[#FFB300] rounded font-mono text-[10px] font-bold">
+                        LOW STOCK
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300">
+                      Remaining: <strong className="text-[#FFB300]">3 units</strong>. S4 CSE break incoming in 42 minutes.
+                    </p>
+                    <button
+                      onClick={handleTriggerReorder}
+                      className="mt-2 w-full py-2 bg-[#1E2E45] hover:bg-[#00E5FF] hover:text-[#060D17] text-[#00E5FF] font-mono text-xs font-bold rounded flex items-center justify-center gap-1 border border-[#00E5FF]/40"
+                    >
+                      <span className="material-symbols-outlined text-sm">local_shipping</span>
+                      <span>Restock 50 Units</span>
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-500 font-mono text-xs">
-                  No order selected
-                </div>
-              )}
-
-            </section>
-          </div>
+              </div>
+            </div>
+          )}
 
           {/* SPRING AI PREDICTIVE STOCK VELOCITY ALERT DRAWER (BOTTOM FIXED WIDGET) */}
           {!velocityAlertDismissed && (

@@ -7,6 +7,7 @@ import type {
   Product,
 } from '../types';
 import { INITIAL_BUNDLES, INITIAL_ORDERS, INITIAL_PRODUCTS } from '../data/mockData';
+import { apiService } from '../services/api';
 
 interface PreFetchContextType {
   activeView: 'landing' | 'catalog' | 'checkout' | 'admin';
@@ -15,6 +16,13 @@ interface PreFetchContextType {
   setCheckoutTab: (tab: 'checkout' | 'token') => void;
   currentBranch: BranchSemester;
   setCurrentBranch: (branch: BranchSemester) => void;
+  
+  // Department & Semester Filter
+  selectedDepartment: string;
+  setSelectedDepartment: (dept: string) => void;
+  selectedSemester: string;
+  setSelectedSemester: (sem: string) => void;
+
   products: Product[];
   bundles: CurriculumBundle[];
   cart: CartItem[];
@@ -45,11 +53,15 @@ interface PreFetchContextType {
 
   // Checkout & Concurrency
   simulateGooglePayCheckout: () => void;
+  confirmUpiPayment: (orderId: string, utrRef: string) => void;
+  generatedUpiUrl: string;
 
   // Admin Actions
   toggleAdminCheckItem: (orderId: string, itemIdx: number) => void;
   markOrderReady: (orderId: string) => void;
   markOrderCollected: (orderId: string) => void;
+  toggleKillSwitch: (productId: string, active: boolean) => void;
+  updateInventoryItem: (productId: string, newStock: number, newPrice?: number) => void;
   addLiveMockOrder: () => void;
   resetAllData: () => void;
 }
@@ -60,10 +72,24 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [activeView, setActiveView] = useState<'landing' | 'catalog' | 'checkout' | 'admin'>('landing');
   const [checkoutTab, setCheckoutTab] = useState<'checkout' | 'token'>('checkout');
   const [currentBranch, setCurrentBranch] = useState<BranchSemester>('S4 CSE');
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
+  const [selectedSemester, setSelectedSemester] = useState<string>('All');
+
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS.map(p => ({
+    ...p,
+    isActive: true,
+    department: p.departmentTag.includes('CSE') ? 'Computer Science' :
+                p.departmentTag.includes('Mechanical') ? 'Mechanical' :
+                p.departmentTag.includes('Lab') ? 'Common' : 'General',
+    semester: p.departmentTag.includes('S4') ? 'S4' :
+              p.departmentTag.includes('S2') ? 'S2' :
+              p.departmentTag.includes('S6') ? 'S6' : 'All'
+  })));
+  
   const [bundles] = useState<CurriculumBundle[]>(INITIAL_BUNDLES);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [selectedAdminOrderId, setSelectedAdminOrderId] = useState<string>('#FETCH-8802');
+  const [activeStudentOrderId, setActiveStudentOrderId] = useState<string>('#FETCH-8802');
   const [isMobileFrame, setIsMobileFrame] = useState<boolean>(false);
   const [lockRemainingSeconds, setLockRemainingSeconds] = useState<number>(4 * 60 + 32);
 
@@ -113,11 +139,17 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const cartFinalTotal = Math.max(0, cartSubtotal - subsidyDiscount);
   const totalCartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Active student order (default to #FETCH-8802 or the latest created)
-  const activeStudentOrder = orders.find((o) => o.id === '#FETCH-8802') || orders[0] || null;
+  // Active student order
+  const activeStudentOrder = orders.find((o) => o.id === activeStudentOrderId) || orders[0] || null;
 
   // Selected admin order for packet inspection
   const selectedAdminOrder = orders.find((o) => o.id === selectedAdminOrderId) || orders[0] || null;
+
+  // Dynamic Google Pay UPI 2.0 URL
+  const merchantUpiId = 'marian.coop@okaxis';
+  const merchantName = encodeURIComponent('Marian Co-Operative Store');
+  const orderRef = activeStudentOrder ? activeStudentOrder.id : '#FETCH-8802';
+  const generatedUpiUrl = `upi://pay?pa=${merchantUpiId}&pn=${merchantName}&tr=${orderRef}&am=${cartFinalTotal > 0 ? cartFinalTotal : 1000}.00&cu=INR&tn=${encodeURIComponent('PreFetch Token ' + orderRef)}`;
 
   const selectProductVariant = (productId: string, variantId: string) => {
     setProducts((prev) =>
@@ -132,13 +164,18 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const addToCart = (product: Product, variantId?: string, qty: number = 1) => {
+    if (product.isActive === false) {
+      alert(`Item [${product.name}] is temporarily disabled by store counter staff.`);
+      return;
+    }
+
     let specText = undefined;
     let effectivePrice = product.price;
 
     if (product.variants && product.variants.length > 0) {
       const activeVariant = product.variants.find((v) => v.id === (variantId || product.selectedVariantId)) || product.variants[0];
       if (activeVariant.stock <= 0) {
-        alert(`Size ${activeVariant.name} is currently out of stock!`);
+        alert(`Size ${activeVariant.name} just ran out of stock!`);
         return;
       }
       specText = `SIZE ${activeVariant.name}`;
@@ -147,7 +184,7 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       if (product.stock <= 0) {
-        alert('This item is currently out of stock!');
+        alert(`Item [${product.name}] is currently out of stock!`);
         return;
       }
     }
@@ -198,7 +235,6 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ];
       });
     });
-    // Jump straight to checkout
     setActiveView('checkout');
     setCheckoutTab('checkout');
     resetLockTimer();
@@ -225,8 +261,30 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const clearCart = () => setCart([]);
 
   // Simulate Google Pay UPI checkout with atomic transaction lock
-  const simulateGooglePayCheckout = () => {
+  const simulateGooglePayCheckout = async () => {
     if (cart.length === 0) return;
+
+    // Check race condition defense
+    for (const cartItem of cart) {
+      const prod = products.find(p => p.id === cartItem.productId);
+      if (prod) {
+        if (prod.isActive === false) {
+          alert(`Item [${prod.name}] just got deactivated by store staff!`);
+          return;
+        }
+        if (prod.variants && cartItem.spec) {
+          const vName = cartItem.spec.replace('SIZE ', '').trim();
+          const variant = prod.variants.find(v => v.name === vName);
+          if (variant && variant.stock < cartItem.quantity) {
+            alert(`Item [${prod.name} (${vName})] just ran out of stock!`);
+            return;
+          }
+        } else if (prod.stock < cartItem.quantity) {
+          alert(`Item [${prod.name}] just ran out of stock!`);
+          return;
+        }
+      }
+    }
 
     // Concurrency atomic decrement on products
     setProducts((prev) =>
@@ -256,7 +314,7 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       })
     );
 
-    // Generate new verifiable collection token
+    // Generate unique short human-friendly pickup token
     const randomTokenNum = Math.floor(1000 + Math.random() * 9000);
     const newTokenId = `#FETCH-${randomTokenNum}`;
     const hash = Math.random().toString(16).substring(2, 10);
@@ -268,9 +326,10 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       branch: currentBranch,
       totalAmount: cartFinalTotal,
       paymentRoute: `UPI INTENT #MEC-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: 'READY FOR PICKUP',
+      status: 'PAID',
       createdAt: 'Just now',
       verificationHash: hash,
+      upiPaymentUrl: generatedUpiUrl,
       items: cart.map((c) => ({
         name: c.name,
         spec: c.spec,
@@ -284,12 +343,27 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setOrders((prev) => [newOrder, ...prev]);
     setSelectedAdminOrderId(newOrder.id);
+    setActiveStudentOrderId(newOrder.id);
     setCheckoutTab('token');
 
-    // Haptic feedback if available
+    // Also notify Spring Boot API in background if online
+    apiService.checkout({
+      studentName: 'Rahul K. Nair',
+      rollNumber: 'MEC22CS089',
+      department: currentBranch,
+      items: cart.map(c => ({ itemId: c.productId, variant: c.spec, quantity: c.quantity }))
+    }).catch(() => {});
+
     if ('vibrate' in navigator) {
       navigator.vibrate([100, 50, 100]);
     }
+  };
+
+  const confirmUpiPayment = async (orderId: string, utrRef: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: 'PAID', upiTxnRef: utrRef } : o))
+    );
+    apiService.confirmPayment(orderId, utrRef).catch(() => {});
   };
 
   const toggleAdminCheckItem = (orderId: string, itemIdx: number) => {
@@ -322,10 +396,33 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return {
           ...o,
           status: 'COLLECTED',
+          verificationHash: `INVALIDATED_AT_${Date.now()}`,
           items: o.items.map((i) => ({ ...i, checked: true })),
         };
       })
     );
+    apiService.markCollected(orderId).catch(() => {});
+  };
+
+  const toggleKillSwitch = (productId: string, active: boolean) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, isActive: active } : p))
+    );
+    apiService.toggleKillSwitch(productId, active).catch(() => {});
+  };
+
+  const updateInventoryItem = (productId: string, newStock: number, newPrice?: number) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        return {
+          ...p,
+          stock: newStock,
+          price: newPrice !== undefined ? newPrice : p.price,
+        };
+      })
+    );
+    apiService.updateInventory(productId, { stock: newStock, price: newPrice }).catch(() => {});
   };
 
   const addLiveMockOrder = () => {
@@ -342,7 +439,7 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       branch: pickBranch,
       totalAmount: 480,
       paymentRoute: 'UPI INTENT #MEC-LIVE',
-      status: 'PREPARING',
+      status: 'PAID',
       createdAt: 'Just now',
       verificationHash: Math.random().toString(16).substring(2, 8),
       items: [
@@ -370,9 +467,10 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const resetAllData = () => {
-    setProducts(INITIAL_PRODUCTS);
+    setProducts(INITIAL_PRODUCTS.map(p => ({ ...p, isActive: true })));
     setOrders(INITIAL_ORDERS);
     setSelectedAdminOrderId('#FETCH-8802');
+    setActiveStudentOrderId('#FETCH-8802');
   };
 
   return (
@@ -384,6 +482,10 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setCheckoutTab,
         currentBranch,
         setCurrentBranch,
+        selectedDepartment,
+        setSelectedDepartment,
+        selectedSemester,
+        setSelectedSemester,
         products,
         bundles,
         cart,
@@ -406,9 +508,13 @@ export const PreFetchProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalCartItemCount,
         selectProductVariant,
         simulateGooglePayCheckout,
+        confirmUpiPayment,
+        generatedUpiUrl,
         toggleAdminCheckItem,
         markOrderReady,
         markOrderCollected,
+        toggleKillSwitch,
+        updateInventoryItem,
         addLiveMockOrder,
         resetAllData,
       }}

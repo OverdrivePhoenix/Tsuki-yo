@@ -15,6 +15,8 @@ export interface Product {
   subtitle: string;
   category: ProductCategory;
   departmentTag: string;
+  department?: string;
+  semester?: string;
   price: number;
   originalPrice?: number;
   rackLocation: string;
@@ -22,6 +24,7 @@ export interface Product {
   variants?: ProductVariant[];
   selectedVariantId?: string;
   stock: number; // aggregate or single stock
+  isActive?: boolean; // store clerk instant Kill-Switch
 }
 
 export interface CurriculumBundle {
@@ -52,7 +55,7 @@ export interface CartItem {
   rackLocation: string;
 }
 
-export type OrderStatus = 'PAID' | 'PREPARING' | 'READY FOR PICKUP' | 'COLLECTED';
+export type OrderStatus = 'PENDING' | 'PAID' | 'PREPARING' | 'READY FOR PICKUP' | 'COLLECTED';
 
 export interface OrderItem {
   name: string;
@@ -75,4 +78,6 @@ export interface Order {
   status: OrderStatus;
   createdAt: string; // e.g. "1m 45s ago" or timestamp
   verificationHash: string;
+  upiPaymentUrl?: string;
+  upiTxnRef?: string;
 }

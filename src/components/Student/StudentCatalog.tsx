@@ -16,6 +16,8 @@ export const StudentCatalog: React.FC = () => {
     cartFinalTotal,
     totalCartItemCount,
     isMobileFrame,
+    selectedDepartment,
+    setSelectedDepartment,
   } = usePreFetch();
 
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('All');
@@ -25,6 +27,7 @@ export const StudentCatalog: React.FC = () => {
   });
 
   const branches: BranchSemester[] = ['S4 CSE', 'S2 ECE', 'S6 ME', 'S8 CE', 'S4 EEE'];
+  const departments = ['All', 'Computer Science', 'Mechanical', 'Common'];
   const categories: ProductCategory[] = ['All', 'Textbooks', 'Lab Supplies', 'Stationery', 'MEC Merch'];
 
   // Current active bundle for selected branch
@@ -32,8 +35,9 @@ export const StudentCatalog: React.FC = () => {
     bundles.find((b) => b.branch === currentBranch) || bundles[0];
 
   const filteredProducts = products.filter((p) => {
-    if (activeCategory === 'All') return true;
-    return p.category === activeCategory;
+    if (activeCategory !== 'All' && p.category !== activeCategory) return false;
+    if (selectedDepartment !== 'All' && p.department && p.department !== selectedDepartment && p.department !== 'Common') return false;
+    return true;
   });
 
   const handleStepperChange = (prodId: string, delta: number) => {
@@ -127,6 +131,27 @@ export const StudentCatalog: React.FC = () => {
                     <span className="material-symbols-outlined text-xs">school</span>
                     <span>{b}</span>
                     {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#00E676]"></span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Department Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto custom-scroll pt-1">
+              <span className="font-mono text-[10px] text-gray-500 uppercase shrink-0">Dept:</span>
+              {departments.map((dept) => {
+                const isSelected = dept === selectedDepartment;
+                return (
+                  <button
+                    key={dept}
+                    onClick={() => setSelectedDepartment(dept)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono shrink-0 transition-all ${
+                      isSelected
+                        ? 'bg-[#006875] text-white font-bold'
+                        : 'bg-[#e7eeff] text-[#44474c] hover:bg-[#dee8ff]'
+                    }`}
+                  >
+                    {dept}
                   </button>
                 );
               })}
