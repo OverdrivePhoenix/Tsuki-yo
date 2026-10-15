@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePreFetch } from '../../context/PreFetchContext';
 import { ScannerModal } from './ScannerModal';
+import { apiService } from '../../services/api';
 
 export const AdminConsole: React.FC = () => {
   const {
@@ -9,6 +10,7 @@ export const AdminConsole: React.FC = () => {
     selectedAdminOrder,
     setSelectedAdminOrder,
     toggleAdminCheckItem,
+    markOrderReady,
     markOrderCollected,
     toggleKillSwitch,
     updateInventoryItem,
@@ -93,6 +95,7 @@ export const AdminConsole: React.FC = () => {
   };
 
   const handleTriggerReorder = () => {
+    apiService.dispatchReorder({ itemId: 'item-lab-coat', name: 'Navy Blue Lab Coat', quantity: 25 }).catch(() => {});
     setReorderSuccessToast('⚡ Central Purchase Order PO-#8821 dispatched to Marian Central Depot! Delivery scheduled for 1:30 PM.');
     setTimeout(() => setReorderSuccessToast(null), 4000);
   };
@@ -535,6 +538,15 @@ export const AdminConsole: React.FC = () => {
 
                     {/* Instant Dispatch Action */}
                     <div className="mt-auto pt-3 flex flex-col gap-2">
+                      {currentOrder.status !== 'READY FOR PICKUP' && currentOrder.status !== 'COLLECTED' && (
+                        <button
+                          onClick={() => markOrderReady(currentOrder.id)}
+                          className="w-full py-2 bg-[#1E2E45] border border-[#00E5FF]/40 text-[#00E5FF] hover:bg-[#00E5FF]/20 font-bold rounded flex items-center justify-center gap-2 font-mono text-xs transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">notifications_active</span>
+                          <span>Stage for Pickup (Notify Student)</span>
+                        </button>
+                      )}
                       {currentOrder.status !== 'COLLECTED' ? (
                         <button
                           onClick={handleFastVerify}

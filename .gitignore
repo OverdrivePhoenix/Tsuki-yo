@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Java / Maven build output
+target/
+*.class
+backend/target/
